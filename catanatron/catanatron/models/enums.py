@@ -9,6 +9,17 @@ FastDevCard = Literal[
 ]
 FastBuildingType = Literal["SETTLEMENT", "CITY", "ROAD"]
 
+
+class Color(Enum):
+    RED = "RED"
+    BLUE = "BLUE"
+    ORANGE = "ORANGE"
+    WHITE = "WHITE"
+    # Add GREEN and BROWN if supporting 5-6 players
+    # GREEN = "GREEN"
+    # BROWN = "BROWN"
+
+
 # Strings are considerably faster than Python Enum's (e.g. at being hashed).
 # TODO: Move to ints
 WOOD: Final = "WOOD"
