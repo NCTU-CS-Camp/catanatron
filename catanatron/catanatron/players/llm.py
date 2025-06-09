@@ -68,13 +68,13 @@ class LLMPlayer(Player):
 
     def _format_game_state_for_llm(self, game, playable_actions) -> str:
 
-        state = json.dumps(game, cls=GameEncoder)
-        print(state)
+        state_json = json.dumps(game, cls=GameEncoder)
+        # print(state)
 
 
         state = game.state
         board = state.board
-        prompt_lines = []
+        prompt_lines = [str(state_json)]
 
         prompt_lines.append(
             f"You are a Catan player, your color is: {self.color.value}."
@@ -409,9 +409,9 @@ class LLMPlayer(Player):
         )
 
         final_prompt = "\n".join(prompt_lines)
-        print("--- PROMPT FOR LLM ---")
-        print(final_prompt)
-        print("----------------------")
+        # print("--- PROMPT FOR LLM ---")
+        # print(final_prompt)
+        # print("----------------------")
         return final_prompt
 
     def _parse_llm_response(self, response_text: str, playable_actions: list[Action]) -> Action | None:
@@ -467,7 +467,23 @@ class LLMPlayer(Player):
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(
+                        include_thoughts=True
+                    )
+                )
             )
+            for part in response.candidates[0].content.parts:
+                if not part.text:
+                    continue
+                if part.thought:
+                    print("Thought summary:")
+                    print(part.text)
+                    print()
+                else:
+                    print("Answer:")
+                    print(part.text)
+                    print()
             llm_response_text = response.text
             print(f"LLM {self.color.value}: RX response: '{llm_response_text}'")
         except Exception as e:
