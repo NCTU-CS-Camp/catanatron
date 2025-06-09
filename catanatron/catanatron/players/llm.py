@@ -7,9 +7,7 @@ from google.genai import types
 # For type hinting
 from catanatron.models.enums import (
     Color,
-    DEVELOPMENT_CARDS as DevelopmentCard,
-    RESOURCES as Resource,
-    FastResource as ALL_RESOURCES_ENUM,  # Added for use in _format_game_state_for_llm
+    Resource as ALL_RESOURCES_ENUM,  # Added for use in _format_game_state_for_llm
     SETTLEMENT,
     CITY,
     ActionPrompt,
@@ -40,7 +38,7 @@ class LLMPlayer(Player):
         self,
         color: Color,
         model_name: str = "gemini-2.5-flash-preview-05-20",
-        api_key: str | None = None
+        api_key: str | None = "AIzaSyCxbVjDyqLssYuc4VWqbHK34YDeuCz7_uQ"
     ):
         super().__init__(color, is_bot=True)
         self.model_name = model_name
@@ -66,15 +64,40 @@ class LLMPlayer(Player):
             print("LLMAgent will fall back to random choices.")
             self.client = None  # Fallback on API key or init error
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Remove the unpicklable client attribute
+        if 'client' in state:
+            del state['client']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Re-initialize the client attribute
+        try:
+            if not self.api_key:
+                # This case should ideally not happen if api_key was set in __init__
+                # and __getstate__ preserved it.
+                self.client = None
+            else:
+                self.client = genai.Client(api_key=self.api_key)
+        except Exception as e:
+            print(f"Error re-initializing LLMAgent client for {self.color.value} during unpickling: {e}")
+            self.client = None
+
     def _format_game_state_for_llm(self, game, playable_actions) -> str:
 
         state_json = json.dumps(game, cls=GameEncoder)
         # print(state)
+        print(game.id)
 
 
         state = game.state
         board = state.board
-        prompt_lines = [str(state_json)]
+        prompt_lines = [self._system_prompt()]
+        # print(prompt_lines)
+        prompt_lines.append(str(state_json))
+        print(str(state_json))
 
         prompt_lines.append(
             f"You are a Catan player, your color is: {self.color.value}."
@@ -239,10 +262,11 @@ class LLMPlayer(Player):
         # )
         # largest_army_color, largest_army_val = sf.get_largest_army(state)
         # army_holder_str = largest_army_color.value if largest_army_color else 'None'
-        # prompt_lines.append(
-        #     f"Largest Army: Held by {army_holder_str}, "
-        #     f"Size: {largest_army_val if largest_army_val is not None else 0}"
-        # )
+        # part1 = f"Largest Army: Held by {army_holder_str}, "
+        # size_value_as_string = f"{largest_army_val or 0}"
+        # part2 = "Size: " + size_value_as_string
+        # text_for_prompt = part1 + part2
+        # prompt_lines.append(text_for_prompt)
         # prompt_lines.append(
         #     f"Development cards left in deck: {len(state.development_listdeck)}"
         # )
@@ -311,6 +335,7 @@ class LLMPlayer(Player):
                 val_str = str(action.value)
                 if action.action_type == ActionType.OFFER_TRADE and \
                    action.value and len(action.value) >= 10:
+                    assert False, action.value
                     off_res = [
                         ALL_RESOURCES_ENUM[j] for j, count
                         in enumerate(action.value[:5]) if count > 0
@@ -379,12 +404,12 @@ class LLMPlayer(Player):
                     )
                 elif action.action_type == ActionType.PLAY_MONOPOLY and \
                      action.value is not None:
-                    val_str = f"Declare Monopoly on {ALL_RESOURCES_ENUM[action.value]}"
+                    val_str = f"Declare Monopoly on {action.value}"
                 elif action.action_type == ActionType.PLAY_YEAR_OF_PLENTY and \
                      action.value and len(action.value) == 2:
                     res1_idx = action.value[0]
                     res2_idx = action.value[1]
-                    val_str = f"Take {ALL_RESOURCES_ENUM[res1_idx]} and {ALL_RESOURCES_ENUM[res2_idx]} from bank"
+                    val_str = f"Take {res1_idx} and {res2_idx} from bank"
 
                 prompt_lines.append(f"  {i}: Type={action.action_type.name},")
                 if '\n' in val_str:
@@ -409,9 +434,9 @@ class LLMPlayer(Player):
         )
 
         final_prompt = "\n".join(prompt_lines)
-        # print("--- PROMPT FOR LLM ---")
-        # print(final_prompt)
-        # print("----------------------")
+        print("--- PROMPT FOR LLM ---")
+        print(final_prompt)
+        print("----------------------")
         return final_prompt
 
     def _parse_llm_response(self, response_text: str, playable_actions: list[Action]) -> Action | None:
@@ -469,10 +494,11 @@ class LLMPlayer(Player):
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     thinking_config=types.ThinkingConfig(
-                        include_thoughts=True
+                        include_thoughts=True,
+                        thinking_budget=1024
                     )
                 )
-            )
+            )   
             for part in response.candidates[0].content.parts:
                 if not part.text:
                     continue
@@ -499,6 +525,136 @@ class LLMPlayer(Player):
 
     def __repr__(self):
         return super().__repr__() + f" (LLM: {self.model_name})"
+
+    def _system_prompt(self):
+        prompt = """
+# Settlers of Catan - Optimal Strategy System Prompt
+
+You are an expert Catan player with deep strategic knowledge. Follow these core principles and strategies:
+
+## GAME OVERVIEW
+- **Objective**: First to 10 victory points wins
+- **Victory Points Sources**: Settlements (1), Cities (2), Longest Road (2), Largest Army (2), Development Cards (1 each)
+- **Resources**: Brick, Lumber, Wool, Grain, Ore (numbers 2-12, avoid 2 and 12)
+
+## INITIAL PLACEMENT STRATEGY
+
+### First Settlement Placement (Priority Order):
+1. **Target 6 and 8 first** - These roll most frequently (5/36 probability each)
+2. **Secure resource diversity** - Aim for 4-5 different resources across your two settlements
+3. **Consider ports strategically** - 3:1 ports are valuable, 2:1 ports are excellent if you can produce that resource
+4. **Block opponents** - Deny prime spots, especially if they're going for similar strategies
+
+### Second Settlement Placement:
+1. **Complete resource collection** - Ensure access to all 5 resources if possible
+2. **Focus on high-probability numbers** - 6, 8, then 5, 9, then 4, 10
+3. **Consider development card strategy** - If heavy on Ore/Grain, plan for dev card focus
+
+### Road Placement:
+- **Always consider longest road potential** - Plan 2-3 moves ahead
+- **Block opponents' expansion** - Cut off their longest road or best expansion spots
+- **Secure expansion routes** - Ensure you can reach your planned third settlement
+
+## RESOURCE MANAGEMENT
+
+### Trading Principles:
+1. **Trade at 3:1 or better ratios when possible**
+2. **Avoid helping leaders** - Don't trade resources that help someone close to winning
+3. **Create scarcity** - Hoard resources others need if you're ahead
+4. **Time trades strategically** - Trade just before your turn for maximum benefit
+
+### Resource Priority by Game Phase:
+**Early Game**: Lumber + Brick (settlements and roads)
+**Mid Game**: Ore + Grain (cities and development cards)
+**Late Game**: Depends on path to victory
+
+## DEVELOPMENT CARD STRATEGY
+
+### When to Buy Development Cards:
+- **You have excess Ore/Grain** consistently
+- **Building is blocked** by robber or lack of good spots
+- **Racing for Largest Army** (need 3+ knights)
+- **Late game** when you need that final victory point
+
+### Development Card Priorities:
+1. **Knights** - Control robber, work toward Largest Army
+2. **Victory Points** - Hidden points for surprise wins
+3. **Year of Plenty/Monopoly** - Situational but powerful
+4. **Road Building** - Great for surprise Longest Road
+
+## ROBBER STRATEGY
+
+### Robber Placement Priorities:
+1. **Block the current leader's** best production
+2. **Target players with many cards** (7+ cards)
+3. **Block key resources** you need to deny
+4. **Avoid blocking yourself** from future trades
+
+### When You Roll 7:
+- **Discard optimally** - Keep building materials, trade materials
+- **Target hand sizes strategically** - Steal from players with many cards
+- **Consider board position** - Sometimes blocking production > stealing cards
+
+## MID-TO-LATE GAME TRANSITIONS
+
+### Path to Victory Assessment:
+**Settlement/City Victory**: 
+- Need good expansion spots and consistent production
+- Focus on Ore/Grain for cities
+
+**Development Card Victory**:
+- Need steady Ore/Grain production
+- Build toward Largest Army + hidden VP cards
+
+**Longest Road Victory**:
+- Need Lumber/Brick production
+- Plan route carefully, build roads in bursts
+
+### Timing Critical Moves:
+- **Save resources** before your turn to avoid robber losses
+- **Build in bursts** to surprise opponents
+- **Count victory points** obsessively in late game
+- **Watch for surprise victories** - hidden development cards
+
+## ADVANCED TACTICAL CONCEPTS
+
+### Card Counting:
+- **Track development cards** - 25 total (14 knights, 5 VP, 2 each utility)
+- **Monitor resource depletion** - Especially cities (4 total) and settlements (5 total)
+- **Count opponent victory points** - Including likely hidden dev cards
+
+### Psychological Warfare:
+- **Misdirection** - Don't telegraph your strategy too obviously
+- **Negotiation** - Create mutually beneficial trades, but always with your benefit prioritized
+- **Threat assessment** - Identify and communicate about the current leader
+
+### Endgame Principles:
+- **Deny leader resources** through trading embargoes
+- **Form temporary alliances** against the leader
+- **Calculate exact paths to victory** - yours and opponents'
+- **Save surprise moves** - Road building, development cards for final turn
+
+## COMMON MISTAKES TO AVOID
+
+1. **Over-expanding early** - Don't build settlements without cities
+2. **Ignoring development cards** - They're often the margin of victory
+3. **Poor robber usage** - Not maximizing its strategic impact
+4. **Helping opponents** - Every trade should benefit you more
+5. **Tunnel vision** - Always reassess your path to victory
+
+## DECISION-MAKING FRAMEWORK
+
+For each turn, evaluate in this order:
+1. **Can I win this turn?** - Check all victory point sources
+2. **Can someone else win next turn?** - Block if possible
+3. **What's my optimal build?** - Based on current strategy and resources
+4. **Who should I trade with?** - Maximize your benefit, minimize theirs
+5. **Where should the robber go?** - Maximum strategic impact
+
+Remember: Catan combines strategy, tactics, negotiation, and some luck. Adapt your strategy based on the board, dice rolls, and opponent behavior, but always maintain focus on your path to 10 victory points. 使用繁體中文作為思考時的語言。
+        """
+
+        return prompt
 
 
 # Example usage (testing; normally instantiated by game engine)

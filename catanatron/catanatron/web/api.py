@@ -11,6 +11,7 @@ from catanatron.models.player import Color, Player, RandomPlayer
 from catanatron.game import Game
 from catanatron.players.value import ValueFunctionPlayer
 from catanatron.players.minimax import AlphaBetaPlayer
+from catanatron.players.llm import LLMPlayer
 from catanatron.web.mcts_analysis import GameAnalyzer
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -23,6 +24,8 @@ def player_factory(player_key):
         return RandomPlayer(player_key[1])
     elif player_key[0] == "HUMAN":
         return ValueFunctionPlayer(player_key[1], is_bot=False)
+    elif player_key[0] == "LLM":
+        return LLMPlayer(player_key[1])
     else:
         raise ValueError("Invalid player key")
 
@@ -32,6 +35,10 @@ def post_game_endpoint():
     if not request.is_json or request.json is None or "players" not in request.json:
         abort(400, description="Missing or invalid JSON body: 'players' key required")
     player_keys = request.json["players"]
+    print(request.json["players"])
+    player_keys = [
+        "CATANATRON", "CATANATRON", "RANDOM", "LLM"
+    ]
     players = list(map(player_factory, zip(player_keys, Color)))
 
     game = Game(players=players)

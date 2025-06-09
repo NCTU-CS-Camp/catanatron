@@ -20,6 +20,13 @@ class Color(Enum):
     # BROWN = "BROWN"
 
 
+class Resource(Enum):
+    WOOD = "WOOD"
+    BRICK = "BRICK"
+    SHEEP = "SHEEP"
+    WHEAT = "WHEAT"
+    ORE = "ORE"
+
 # Strings are considerably faster than Python Enum's (e.g. at being hashed).
 # TODO: Move to ints
 WOOD: Final = "WOOD"
