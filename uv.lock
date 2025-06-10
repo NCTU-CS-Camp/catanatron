@@ -90,6 +90,7 @@ dependencies = [
     { name = "networkx" },
     { name = "rich" },
     { name = "sqlalchemy" },
+    { name = "websockets" },
 ]
 
 [package.optional-dependencies]
@@ -145,6 +146,7 @@ requires-dist = [
     { name = "rich" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "sqlalchemy", marker = "extra == 'web'" },
+    { name = "websockets", specifier = ">=15.0.1" },
 ]
 provides-extras = ["gym", "web", "dev"]
 
