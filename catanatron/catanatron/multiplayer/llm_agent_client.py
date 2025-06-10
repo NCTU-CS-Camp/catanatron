@@ -14,10 +14,20 @@ class LLMAgentClient:
         self.server_host = server_host
         self.server_port = server_port
         self.color = color
-        self.llm_player = LLMPlayer(color, model_name)
-        self.websocket: Optional[websockets.WebSocketServerProtocol] = None
+        self.model_name = model_name
+        self.websocket = None
         self.connected = False
         
+        # 初始化 LLM 玩家
+        try:
+            print(f"Initializing LLM Player for {color.value} with model {model_name}...")
+            self.llm_player = LLMPlayer(color, model_name)
+            print(f"LLM Player initialized successfully for {color.value}")
+        except Exception as e:
+            print(f"Failed to initialize LLM Player for {color.value}: {e}")
+            print("Will use fallback decision making")
+            self.llm_player = None
+
     async def connect(self):
         """連接到 Game Engine Server"""
         try:
@@ -166,6 +176,8 @@ class LLMAgentClient:
             except Exception as fallback_error:
                 print(f"Even fallback action failed: {fallback_error}")
 
+    # 修改 make_llm_decision 方法來啟用真正的 LLM
+
     async def make_llm_decision(self, game, playable_actions_data) -> Optional[int]:
         """使用 LLM 做決策"""
         try:
@@ -192,23 +204,65 @@ class LLMAgentClient:
                 print("No valid actions could be created")
                 return 0  # 返回第一個選項
             
-            # 簡化：不使用 LLM，直接選擇第一個或隨機選擇
-            print(f"LLM decision: choosing action 0 (simplified)")
-            return 0
-            
-            # 如果要使用真正的 LLM，需要創建一個簡化的遊戲對象
-            # chosen_action = self.llm_player.decide(game, mock_actions)
-            # 
-            # if chosen_action:
-            #     # 找到對應的索引
-            #     for i, action in enumerate(mock_actions):
-            #         if (action.action_type == chosen_action.action_type and 
-            #             action.value == chosen_action.value):
-            #             return i
-            # 
-            # # 如果找不到匹配的，返回第一個
-            # print("LLM decision not found in available actions, using first action")
-            # return 0
+            # 使用真正的 LLM 做決策
+            try:
+                print(f"Using LLM for {self.color.value} decision...")
+                chosen_action = self.llm_player.decide(None, mock_actions)  # game 可以是 None
+                
+                if chosen_action:
+                    # 找到對應的索引
+                    for i, action in enumerate(mock_actions):
+                        if (action.action_type == chosen_action.action_type and 
+                            action.value == chosen_action.value):
+                            print(f"LLM chose action {i}: {chosen_action}")
+                            return i
+                
+                # 如果找不到匹配的，返回第一個
+                print("LLM decision not found in available actions, using first action")
+                return 0
+                
+            except Exception as llm_error:
+                print(f"LLM decision failed: {llm_error}")
+                import traceback
+                traceback.print_exc()
+                
+                # 使用簡化決策：根據行動類型選擇
+                print("Falling back to rule-based decision...")
+                
+                # 根據行動類型做簡單的優先級選擇
+                for i, action_data in enumerate(playable_actions_data):
+                    action_type = action_data.get('action_type', '')
+                    
+                    # 優先選擇建設行動
+                    if 'BUILD_SETTLEMENT' in action_type or 'BUILD_CITY' in action_type:
+                        print(f"Choosing building action: {action_data.get('description')}")
+                        return i
+                    
+                    # 其次選擇道路建設
+                    if 'BUILD_ROAD' in action_type:
+                        print(f"Choosing road building action: {action_data.get('description')}")
+                        return i
+                    
+                    # 購買發展卡
+                    if 'BUY_DEVELOPMENT_CARD' in action_type:
+                        print(f"Choosing development card purchase: {action_data.get('description')}")
+                        return i
+                
+                # 隨機選擇（排除 END_TURN）
+                non_end_turn_actions = [
+                    i for i, action_data in enumerate(playable_actions_data)
+                    if action_data.get('action_type') != 'END_TURN'
+                ]
+                
+                if non_end_turn_actions:
+                    import random
+                    choice = random.choice(non_end_turn_actions)
+                    print(f"Random choice (avoiding END_TURN): {choice} - {playable_actions_data[choice].get('description')}")
+                    return choice
+                else:
+                    # 如果只有 END_TURN，就選它
+                    print("Only END_TURN available, choosing it")
+                    return 0
             
         except Exception as e:
             print(f"Error in LLM decision making: {e}")

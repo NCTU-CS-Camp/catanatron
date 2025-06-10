@@ -86,358 +86,424 @@ class LLMPlayer(Player):
             self.client = None
 
     def _format_game_state_for_llm(self, game, playable_actions) -> str:
+        """格式化遊戲狀態為 LLM 提示"""
+        # 處理 game 為 None 的情況
+        if game is None:
+            return self._format_actions_only_for_llm(playable_actions)
+        
+        # 原有的完整遊戲狀態格式化邏輯
+        try:
+            print(game.id)
 
-        state_json = json.dumps(game, cls=GameEncoder)
-        # print(state)
-        print(game.id)
+            state_json = json.dumps(game, cls=GameEncoder)
+            # print(state)
+            print(game.id)
 
 
-        state = game.state
-        board = state.board
-        prompt_lines = [self._system_prompt()]
-        # print(prompt_lines)
-        prompt_lines.append(str(state_json))
-        print(str(state_json))
+            state = game.state
+            board = state.board
+            prompt_lines = [self._system_prompt()]
+            # print(prompt_lines)
+            prompt_lines.append(str(state_json))
+            print(str(state_json))
 
-        prompt_lines.append(
-            f"You are a Catan player, your color is: {self.color.value}."
-        )
-        prompt_lines.append(
-            f"The goal is to reach {game.vps_to_win} victory points."
-        )
-        prompt_lines.append(f"Current turn number: {state.num_turns}")
-        prompt_lines.append(
-            f"Player whose turn it is: {state.colors[state.current_turn_index].value}"
-        )
-        prompt_lines.append(
-            f"Player currently making a decision: {state.current_color().value}"
-        )
-        prompt_lines.append(
-            f"Current game phase/prompt: {state.current_prompt.name}"
-        )
+            prompt_lines.append(
+                f"You are a Catan player, your color is: {self.color.value}."
+            )
+            prompt_lines.append(
+                f"The goal is to reach {game.vps_to_win} victory points."
+            )
+            prompt_lines.append(f"Current turn number: {state.num_turns}")
+            prompt_lines.append(
+                f"Player whose turn it is: {state.colors[state.current_turn_index].value}"
+            )
+            prompt_lines.append(
+                f"Player currently making a decision: {state.current_color().value}"
+            )
+            prompt_lines.append(
+                f"Current game phase/prompt: {state.current_prompt.name}"
+            )
 
-        # # --- Board State ---
-        # prompt_lines.append("\n--- BOARD STATE ---")
-        # prompt_lines.append(
-        #     f"Robber is at tile coordinate: {board.robber_coordinate}"
-        # )
+            # # --- Board State ---
+            # prompt_lines.append("\n--- BOARD STATE ---")
+            # prompt_lines.append(
+            #     f"Robber is at tile coordinate: {board.robber_coordinate}"
+            # )
 
-        # prompt_lines.append("\nTiles:")
-        # for coord, tile_info in board.map.land_tiles.items():
-        #     res_name = tile_info.resource if tile_info.resource else "DESERT"
-        #     prompt_lines.append(f"  Tile at {coord}:")
-        #     prompt_lines.append(f"    Resource={res_name}, DiceNumber={tile_info.number}")
+            # prompt_lines.append("\nTiles:")
+            # for coord, tile_info in board.map.land_tiles.items():
+            #     res_name = tile_info.resource if tile_info.resource else "DESERT"
+            #     prompt_lines.append(f"  Tile at {coord}:")
+            #     prompt_lines.append(f"    Resource={res_name}, DiceNumber={tile_info.number}")
 
-        # # prompt_lines.append("\nPorts:")
-        # # found_ports = False
-        # # for tile_obj in board.map.tiles.values():
-        # #     if isinstance(tile_obj, Port):
-        # #         found_ports = True
-        # #         current_port = tile_obj
-        # #         node_pair_str = "Unknown"
-        # #         node_ref_tuple = PORT_DIRECTION_TO_NODEREFS.get(
-        # #             current_port.direction
-        # #         )
-        # #         if node_ref_tuple and len(node_ref_tuple) == 2:
-        # #             node1_id = current_port.nodes.get(node_ref_tuple[0])
-        # #             node2_id = current_port.nodes.get(node_ref_tuple[1])
-        # #             if node1_id is not None and node2_id is not None:
-        # #                 node_ids = tuple(sorted((node1_id, node2_id)))
-        # #                 node_pair_str = str(node_ids)
-        # #         res_name = current_port.resource if current_port.resource else "ANY"
-        # #         ratio = 2 if current_port.resource else 3
-        # #         prompt_lines.append(f"  Port at nodes {node_pair_str}:")
-        # #         prompt_lines.append(f"    Resource={res_name}, Ratio={ratio}:1")
-        # # if not found_ports:
-        # #     prompt_lines.append("  No ports on the board.")
+            # # prompt_lines.append("\nPorts:")
+            # # found_ports = False
+            # # for tile_obj in board.map.tiles.values():
+            # #     if isinstance(tile_obj, Port):
+            # #         found_ports = True
+            # #         current_port = tile_obj
+            # #         node_pair_str = "Unknown"
+            # #         node_ref_tuple = PORT_DIRECTION_TO_NODEREFS.get(
+            # #             current_port.direction
+            # #         )
+            # #         if node_ref_tuple and len(node_ref_tuple) == 2:
+            # #             node1_id = current_port.nodes.get(node_ref_tuple[0])
+            # #             node2_id = current_port.nodes.get(node_ref_tuple[1])
+            # #             if node1_id is not None and node2_id is not None:
+            # #                 node_ids = tuple(sorted((node1_id, node2_id)))
+            # #                 node_pair_str = str(node_ids)
+            # #         res_name = current_port.resource if current_port.resource else "ANY"
+            # #         ratio = 2 if current_port.resource else 3
+            # #         prompt_lines.append(f"  Port at nodes {node_pair_str}:")
+            # #         prompt_lines.append(f"    Resource={res_name}, Ratio={ratio}:1")
+            # # if not found_ports:
+            # #     prompt_lines.append("  No ports on the board.")
 
-        # # prompt_lines.append("\nBuildings (Settlements/Cities):")
-        # # if not board.buildings:
-        # #     prompt_lines.append("  No buildings on the board.")
-        # # else:
-        # #     for node_id, (owner_color, b_type) in board.buildings.items():
-        # #         b_name = "SETTLEMENT" if b_type == SETTLEMENT else "CITY"
-        # #         node_c = board.map.nodes[node_id].coordinate
-        # #         prompt_lines.append(f"  Node {node_id} (Coord: {node_c}):")
-        # #         prompt_lines.append(f"    {b_name} owned by {owner_color.value}")
+            # # prompt_lines.append("\nBuildings (Settlements/Cities):")
+            # # if not board.buildings:
+            # #     prompt_lines.append("  No buildings on the board.")
+            # # else:
+            # #     for node_id, (owner_color, b_type) in board.buildings.items():
+            # #         b_name = "SETTLEMENT" if b_type == SETTLEMENT else "CITY"
+            # #         node_c = board.map.nodes[node_id].coordinate
+            # #         prompt_lines.append(f"  Node {node_id} (Coord: {node_c}):")
+            # #         prompt_lines.append(f"    {b_name} owned by {owner_color.value}")
 
-        # prompt_lines.append("\nRoads:")
-        # if not board.roads:
-        #     prompt_lines.append("  No roads on the board.")
-        # else:
-        #     unique_roads = set()
-        #     for edge, owner_color in board.roads.items():
-        #         sorted_edge = tuple(sorted(edge))
-        #         if sorted_edge not in unique_roads:
-        #             prompt_lines.append(f"  Road between Node {edge[0]} and Node {edge[1]}:")
-        #             prompt_lines.append(f"    Owned by {owner_color.value}")
-        #             unique_roads.add(sorted_edge)
+            # prompt_lines.append("\nRoads:")
+            # if not board.roads:
+            #     prompt_lines.append("  No roads on the board.")
+            # else:
+            #     unique_roads = set()
+            #     for edge, owner_color in board.roads.items():
+            #         sorted_edge = tuple(sorted(edge))
+            #         if sorted_edge not in unique_roads:
+            #             prompt_lines.append(f"  Road between Node {edge[0]} and Node {edge[1]}:")
+            #             prompt_lines.append(f"    Owned by {owner_color.value}")
+            #             unique_roads.add(sorted_edge)
 
-        # # --- Player States ---
-        # prompt_lines.append("\n--- PLAYER STATES ---")
-        # for p_color in state.colors:
-        #     p_key = sf.player_key(state, p_color)
-        #     is_self = p_color == self.color
-        #     you_str = " (YOU)" if is_self else ""
-        #     prompt_lines.append(
-        #         f"\nPlayer {p_color.value} ({p_key}){you_str}: "
-        #     )
+            # # --- Player States ---
+            # prompt_lines.append("\n--- PLAYER STATES ---")
+            # for p_color in state.colors:
+            #     p_key = sf.player_key(state, p_color)
+            #     is_self = p_color == self.color
+            #     you_str = " (YOU)" if is_self else ""
+            #     prompt_lines.append(
+            #         f"\nPlayer {p_color.value} ({p_key}){you_str}: "
+            #     )
 
-        #     # Resources
-        #     player_resource_counts = sf.get_player_freqdeck(state, p_color)
-        #     res_counts_strs = []
-        #     for i, res_name_str in enumerate(ALL_RESOURCES_ENUM):
-        #         res_counts_strs.append(f"{res_name_str}: {player_resource_counts[i]}")
-        #     resources_str = ', '.join(res_counts_strs)
-        #     prompt_lines.append(f"  Resources: {resources_str}")
+            #     # Resources
+            #     player_resource_counts = sf.get_player_freqdeck(state, p_color)
+            #     res_counts_strs = []
+            #     for i, res_name_str in enumerate(ALL_RESOURCES_ENUM):
+            #         res_counts_strs.append(f"{res_name_str}: {player_resource_counts[i]}")
+            #     resources_str = ', '.join(res_counts_strs)
+            #     prompt_lines.append(f"  Resources: {resources_str}")
 
-        #     # Development Cards
-        #     # dev_owned_strs = []
-        #     # dev_played_strs = []
-        #     # for dev_card in DevelopmentCard: # DevelopmentCard is the list of enums
-        #     #     dev_name = dev_card.value # e.g. "KNIGHT"
-        #     #     owned_count = sf.get_dev_cards_in_hand(state, p_color, dev_name)
-        #     #     if owned_count > 0:
-        #     #         dev_owned_strs.append(f"{dev_name}: {owned_count}")
-        #     #     played_count = sf.get_played_dev_cards(state, p_color, dev_name)
-        #     #     if played_count > 0:
-        #     #         dev_played_strs.append(f"{dev_name}: {played_count}")
-        #     # dev_owned_final_str = (
-        #     #     ', '.join(dev_owned_strs) if dev_owned_strs else 'None'
-        #     # )
-        #     # prompt_lines.append(f"  Dev Cards (In Hand): {dev_owned_final_str}")
-        #     # dev_played_final_str = (
-        #     #     ', '.join(dev_played_strs) if dev_played_strs else 'None'
-        #     # )
-        #     # prompt_lines.append(f"  Dev Cards (Played): {dev_played_final_str}")
-        #     # knights_played = sf.get_played_dev_cards(state, p_color, "KNIGHT")
-        #     # prompt_lines.append(f"  Knights Played (total): {knights_played}")
+            #     # Development Cards
+            #     # dev_owned_strs = []
+            #     # dev_played_strs = []
+            #     # for dev_card in DevelopmentCard: # DevelopmentCard is the list of enums
+            #     #     dev_name = dev_card.value # e.g. "KNIGHT"
+            #     #     owned_count = sf.get_dev_cards_in_hand(state, p_color, dev_name)
+            #     #     if owned_count > 0:
+            #     #         dev_owned_strs.append(f"{dev_name}: {owned_count}")
+            #     #     played_count = sf.get_played_dev_cards(state, p_color, dev_name)
+            #     #     if played_count > 0:
+            #     #         dev_played_strs.append(f"{dev_name}: {played_count}")
+            #     # dev_owned_final_str = (
+            #     #     ', '.join(dev_owned_strs) if dev_owned_strs else 'None'
+            #     # )
+            #     # prompt_lines.append(f"  Dev Cards (In Hand): {dev_owned_final_str}")
+            #     # dev_played_final_str = (
+            #     #     ', '.join(dev_played_strs) if dev_played_strs else 'None'
+            #     # )
+            #     # prompt_lines.append(f"  Dev Cards (Played): {dev_played_final_str}")
+            #     # knights_played = sf.get_played_dev_cards(state, p_color, "KNIGHT")
+            #     # prompt_lines.append(f"  Knights Played (total): {knights_played}")
 
-        #     # Victory Points
-        #     vps = sf.get_visible_victory_points(state, p_color)
-        #     prompt_lines.append(f"  Public Victory Points: {vps}")
-        #     if is_self:
-        #         actual_vps = sf.get_actual_victory_points(state, p_color)
-        #         prompt_lines.append(
-        #             f"  Actual Victory Points (incl. hidden): {actual_vps}"
-        #         )
+            #     # Victory Points
+            #     vps = sf.get_visible_victory_points(state, p_color)
+            #     prompt_lines.append(f"  Public Victory Points: {vps}")
+            #     if is_self:
+            #         actual_vps = sf.get_actual_victory_points(state, p_color)
+            #         prompt_lines.append(
+            #             f"  Actual Victory Points (incl. hidden): {actual_vps}"
+            #         )
 
-        #     # Pieces and Status (some still direct access)
-        #     roads_avail = state.player_state.get(f'{p_key}_ROADS_AVAILABLE', 0)
-        #     prompt_lines.append(f"  Roads Available: {roads_avail}")
-        #     settle_avail = state.player_state.get(f'{p_key}_SETTLEMENTS_AVAILABLE', 0)
-        #     prompt_lines.append(f"  Settlements Available: {settle_avail}")
-        #     cities_avail = state.player_state.get(f'{p_key}_CITIES_AVAILABLE', 0)
-        #     prompt_lines.append(f"  Cities Available: {cities_avail}")
-        #     p_longest_road = sf.get_longest_road_length(state, p_color)
-        #     prompt_lines.append(
-        #         f"  Longest Road (personal length): {p_longest_road}"
-        #     )
-        #     has_road_trophy = sf.get_longest_road_color(state) == p_color
-        #     prompt_lines.append(
-        #         f"  Has Longest Road Trophy: {has_road_trophy}"
-        #     )
-        #     largest_army_holder, _ = sf.get_largest_army(state)
-        #     has_army_trophy = largest_army_holder == p_color
-        #     prompt_lines.append(
-        #         f"  Has Largest Army Trophy: {has_army_trophy}"
-        #     )
-        #     has_rolled = sf.player_has_rolled(state, p_color)
-        #     prompt_lines.append(f"  Has Rolled This Turn: {has_rolled}")
-        #     dev_card_played_key = (
-        #         f"{p_key}_HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN"
-        #     )
-        #     has_played_dev = state.player_state.get(dev_card_played_key, False)
-        #     prompt_lines.append(
-        #         f"  Has Played Dev Card This Turn: {has_played_dev}"
-        #     )
+            #     # Pieces and Status (some still direct access)
+            #     roads_avail = state.player_state.get(f'{p_key}_ROADS_AVAILABLE', 0)
+            #     prompt_lines.append(f"  Roads Available: {roads_avail}")
+            #     settle_avail = state.player_state.get(f'{p_key}_SETTLEMENTS_AVAILABLE', 0)
+            #     prompt_lines.append(f"  Settlements Available: {settle_avail}")
+            #     cities_avail = state.player_state.get(f'{p_key}_CITIES_AVAILABLE', 0)
+            #     prompt_lines.append(f"  Cities Available: {cities_avail}")
+            #     p_longest_road = sf.get_longest_road_length(state, p_color)
+            #     prompt_lines.append(
+            #         f"  Longest Road (personal length): {p_longest_road}"
+            #     )
+            #     has_road_trophy = sf.get_longest_road_color(state) == p_color
+            #     prompt_lines.append(
+            #         f"  Has Longest Road Trophy: {has_road_trophy}"
+            #     )
+            #     largest_army_holder, _ = sf.get_largest_army(state)
+            #     has_army_trophy = largest_army_holder == p_color
+            #     prompt_lines.append(
+            #         f"  Has Largest Army Trophy: {has_army_trophy}"
+            #     )
+            #     has_rolled = sf.player_has_rolled(state, p_color)
+            #     prompt_lines.append(f"  Has Rolled This Turn: {has_rolled}")
+            #     dev_card_played_key = (
+            #         f"{p_key}_HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN"
+            #     )
+            #     has_played_dev = state.player_state.get(dev_card_played_key, False)
+            #     prompt_lines.append(
+            #         f"  Has Played Dev Card This Turn: {has_played_dev}"
+            #     )
 
-        # # --- Global Game Status ---
-        # prompt_lines.append("\n--- GLOBAL GAME STATUS ---")
-        # longest_road_holder_color = sf.get_longest_road_color(state)
-        # road_holder_str = longest_road_holder_color.value if longest_road_holder_color else 'None'
-        # prompt_lines.append(
-        #     f"Longest Road: Held by {road_holder_str}, "
-        #     f"Length: {board.road_length}" # board.road_length is global
-        # )
-        # largest_army_color, largest_army_val = sf.get_largest_army(state)
-        # army_holder_str = largest_army_color.value if largest_army_color else 'None'
-        # part1 = f"Largest Army: Held by {army_holder_str}, "
-        # size_value_as_string = f"{largest_army_val or 0}"
-        # part2 = "Size: " + size_value_as_string
-        # text_for_prompt = part1 + part2
-        # prompt_lines.append(text_for_prompt)
-        # prompt_lines.append(
-        #     f"Development cards left in deck: {len(state.development_listdeck)}"
-        # )
-        # # bank_res_list = [
-        # #     f"{Resource(i).name}: {count}" # Assuming Resource(i) works if enums.RESOURCES is used as a map key
-        # #     for i, count in enumerate(state.resource_freqdeck)
-        # # ]
-        # # bank_resources_str = ', '.join(bank_res_list)
-        # # prompt_lines.append(f"Resources in Bank: {bank_resources_str}")
+            # # --- Global Game Status ---
+            # prompt_lines.append("\n--- GLOBAL GAME STATUS ---")
+            # longest_road_holder_color = sf.get_longest_road_color(state)
+            # road_holder_str = longest_road_holder_color.value if longest_road_holder_color else 'None'
+            # prompt_lines.append(
+            #     f"Longest Road: Held by {road_holder_str}, "
+            #     f"Length: {board.road_length}" # board.road_length is global
+            # )
+            # largest_army_color, largest_army_val = sf.get_largest_army(state)
+            # army_holder_str = largest_army_color.value if largest_army_color else 'None'
+            # part1 = f"Largest Army: Held by {army_holder_str}, "
+            # size_value_as_string = f"{largest_army_val or 0}"
+            # part2 = "Size: " + size_value_as_string
+            # text_for_prompt = part1 + part2
+            # prompt_lines.append(text_for_prompt)
+            # prompt_lines.append(
+            #     f"Development cards left in deck: {len(state.development_listdeck)}"
+            # )
+            # # bank_res_list = [
+            # #     f"{Resource(i).name}: {count}" # Assuming Resource(i) works if enums.RESOURCES is used as a map key
+            # #     for i, count in enumerate(state.resource_freqdeck)
+            # # ]
+            # # bank_resources_str = ', '.join(bank_res_list)
+            # # prompt_lines.append(f"Resources in Bank: {bank_resources_str}")
 
-        # # Current Game Flags / Phases
-        # prompt_lines.append("\nCurrent Game Flags:")
-        # prompt_lines.append(
-        #     f"  Is Initial Build Phase: {state.is_initial_build_phase}"
-        # )
-        # prompt_lines.append(
-        #     f"  Is Discarding Phase (due to 7 roll): {state.is_discarding}"
-        # )
-        # prompt_lines.append(
-        #     f"  Is Moving Knight/Robber: {state.is_moving_knight}"
-        # )
-        # prompt_lines.append(
-        #     f"  Is Road Building (dev card): {state.is_road_building}, "
-        #     f"Free Roads Left: {state.free_roads_available}"
-        # )
+            # # Current Game Flags / Phases
+            # prompt_lines.append("\nCurrent Game Flags:")
+            # prompt_lines.append(
+            #     f"  Is Initial Build Phase: {state.is_initial_build_phase}"
+            # )
+            # prompt_lines.append(
+            #     f"  Is Discarding Phase (due to 7 roll): {state.is_discarding}"
+            # )
+            # prompt_lines.append(
+            #     f"  Is Moving Knight/Robber: {state.is_moving_knight}"
+            # )
+            # prompt_lines.append(
+            #     f"  Is Road Building (dev card): {state.is_road_building}, "
+            #     f"Free Roads Left: {state.free_roads_available}"
+            # )
 
-        # if state.is_resolving_trade:
-        #     prompt_lines.append("\nTrade Resolution Active:")
-        #     offered_list = [
-        #         ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
-        #         for j, count in enumerate(state.current_trade[:5])
-        #         if count > 0 for _ in range(count)
-        #     ]
-        #     asking_list = [
-        #         ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
-        #         for j, count in enumerate(state.current_trade[5:10])
-        #         if count > 0 for _ in range(count)
-        #     ]
-        #     offered_str = ', '.join(offered_list)
-        #     asking_str = ', '.join(asking_list)
-        #     init_color_val = state.current_trade[10]
-        #     init_str = (
-        #         f"Player {Color(init_color_val).value}"
-        #         if isinstance(init_color_val, Color)
-        #         else f"Player index {init_color_val}"
-        #     )
-        #     prompt_lines.append(
-        #         f"  Trade Offer by {init_str}: Offers [{offered_str}], "
-        #         f"Asks For: [{asking_str}]"
-        #     )
-        #     acceptees_list = [
-        #         state.colors[i].value for i, accepted
-        #         in enumerate(state.acceptees) if accepted
-        #     ]
-        #     acceptees_str = (
-        #         ', '.join(acceptees_list) if acceptees_list else 'None'
-        #     )
-        #     prompt_lines.append(f"  Players who accepted: {acceptees_str}")
+            # if state.is_resolving_trade:
+            #     prompt_lines.append("\nTrade Resolution Active:")
+            #     offered_list = [
+            #         ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
+            #         for j, count in enumerate(state.current_trade[:5])
+            #         if count > 0 for _ in range(count)
+            #     ]
+            #     asking_list = [
+            #         ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
+            #         for j, count in enumerate(state.current_trade[5:10])
+            #         if count > 0 for _ in range(count)
+            #     ]
+            #     offered_str = ', '.join(offered_list)
+            #     asking_str = ', '.join(asking_list)
+            #     init_color_val = state.current_trade[10]
+            #     init_str = (
+            #         f"Player {Color(init_color_val).value}"
+            #         if isinstance(init_color_val, Color)
+            #         else f"Player index {init_color_val}"
+            #     )
+            #     prompt_lines.append(
+            #         f"  Trade Offer by {init_str}: Offers [{offered_str}], "
+            #         f"Asks For: [{asking_str}]"
+            #     )
+            #     acceptees_list = [
+            #         state.colors[i].value for i, accepted
+            #         in enumerate(state.acceptees) if accepted
+            #     ]
+            #     acceptees_str = (
+            #         ', '.join(acceptees_list) if acceptees_list else 'None'
+            #     )
+            #     prompt_lines.append(f"  Players who accepted: {acceptees_str}")
 
-        # --- Playable Actions ---
-        prompt_lines.append("\n--- AVAILABLE ACTIONS FOR YOU ---")
-        if not playable_actions:
-            prompt_lines.append("  No actions available.")
-        else:
-            for i, action in enumerate(playable_actions):
-                val_str = str(action.value)
-                if action.action_type == ActionType.OFFER_TRADE and \
-                   action.value and len(action.value) >= 10:
-                    assert False, action.value
-                    off_res = [
-                        ALL_RESOURCES_ENUM[j] for j, count
-                        in enumerate(action.value[:5]) if count > 0
-                        for _ in range(count)
-                    ]
-                    ask_res = [
-                        ALL_RESOURCES_ENUM[j] for j, count
-                        in enumerate(action.value[5:10]) if count > 0
-                        for _ in range(count)
-                    ]
-                    val_str = (
-                        f"Offer: [{', '.join(off_res)}], "
-                        f"Ask: [{', '.join(ask_res)}]"
-                    )
-                elif action.action_type in [
-                    ActionType.ACCEPT_TRADE, ActionType.REJECT_TRADE,
-                    ActionType.CONFIRM_TRADE
-                ] and action.value and len(action.value) >= 10:
-                    off_res = [
-                        ALL_RESOURCES_ENUM[j] for j, count
-                        in enumerate(action.value[:5]) if count > 0
-                        for _ in range(count)
-                    ]
-                    ask_res = [
-                        ALL_RESOURCES_ENUM[j] for j, count
-                        in enumerate(action.value[5:10]) if count > 0
-                        for _ in range(count)
-                    ]
-                    partner_val = (
-                        action.value[-1] if len(action.value) > 10 else
-                        "(Self/Bank for maritime)"
-                    )
-                    partner_str = (
-                        f" with Player {Color(partner_val).value}"
-                        if isinstance(partner_val, Color)
-                        else str(partner_val)
-                    )
-                    confirm_partner_str = (
-                        partner_str if action.action_type ==
-                        ActionType.CONFIRM_TRADE else ''
-                    )
-                    offer_details = f"Offer:[{', '.join(off_res)}]"
-                    ask_details = f"Ask:[{', '.join(ask_res)}]"
-                    val_str = (
-                        f"Trade Offer: {offer_details}, {ask_details}{confirm_partner_str}"
-                    )
-                    if len(val_str) > 60:
+            # --- Playable Actions ---
+            prompt_lines.append("\n--- AVAILABLE ACTIONS FOR YOU ---")
+            if not playable_actions:
+                prompt_lines.append("  No actions available.")
+            else:
+                for i, action in enumerate(playable_actions):
+                    val_str = str(action.value)
+                    if action.action_type == ActionType.OFFER_TRADE and \
+                       action.value and len(action.value) >= 10:
+                        assert False, action.value
+                        off_res = [
+                            ALL_RESOURCES_ENUM[j] for j, count
+                            in enumerate(action.value[:5]) if count > 0
+                            for _ in range(count)
+                        ]
+                        ask_res = [
+                            ALL_RESOURCES_ENUM[j] for j, count
+                            in enumerate(action.value[5:10]) if count > 0
+                            for _ in range(count)
+                        ]
                         val_str = (
-                            f"Trade Offer: {offer_details}, \n"
-                            f"             {ask_details}{confirm_partner_str}"
+                            f"Offer: [{', '.join(off_res)}], "
+                            f"Ask: [{', '.join(ask_res)}]"
                         )
-                elif action.action_type == ActionType.MARITIME_TRADE and \
-                     action.value and len(action.value) == 2:
-                    give_res_idx = action.value[0]
-                    rec_res_idx = action.value[1]
-                    val_str = f"Give {ALL_RESOURCES_ENUM[give_res_idx]}, Receive {ALL_RESOURCES_ENUM[rec_res_idx]}"
-                elif action.action_type == ActionType.MOVE_ROBBER and \
-                     action.value and len(action.value) == 2:
-                    tile_c = action.value[0]
-                    victim_c = (
-                        action.value[1].value if action.value[1]
-                        else "No one / Self"
-                    )
-                    val_str = (
-                        f"Move robber to tile {tile_c}, Steal from: {victim_c}"
-                    )
-                elif action.action_type == ActionType.PLAY_MONOPOLY and \
-                     action.value is not None:
-                    val_str = f"Declare Monopoly on {action.value}"
-                elif action.action_type == ActionType.PLAY_YEAR_OF_PLENTY and \
-                     action.value and len(action.value) == 2:
-                    res1_idx = action.value[0]
-                    res2_idx = action.value[1]
-                    val_str = f"Take {res1_idx} and {res2_idx} from bank"
+                    elif action.action_type in [
+                        ActionType.ACCEPT_TRADE, ActionType.REJECT_TRADE,
+                        ActionType.CONFIRM_TRADE
+                    ] and action.value and len(action.value) >= 10:
+                        off_res = [
+                            ALL_RESOURCES_ENUM[j] for j, count
+                            in enumerate(action.value[:5]) if count > 0
+                            for _ in range(count)
+                        ]
+                        ask_res = [
+                            ALL_RESOURCES_ENUM[j] for j, count
+                            in enumerate(action.value[5:10]) if count > 0
+                            for _ in range(count)
+                        ]
+                        partner_val = (
+                            action.value[-1] if len(action.value) > 10 else
+                            "(Self/Bank for maritime)"
+                        )
+                        partner_str = (
+                            f" with Player {Color(partner_val).value}"
+                            if isinstance(partner_val, Color)
+                            else str(partner_val)
+                        )
+                        confirm_partner_str = (
+                            partner_str if action.action_type ==
+                            ActionType.CONFIRM_TRADE else ''
+                        )
+                        offer_details = f"Offer:[{', '.join(off_res)}]"
+                        ask_details = f"Ask:[{', '.join(ask_res)}]"
+                        val_str = (
+                            f"Trade Offer: {offer_details}, {ask_details}{confirm_partner_str}"
+                        )
+                        if len(val_str) > 60:
+                            val_str = (
+                                f"Trade Offer: {offer_details}, \n"
+                                f"             {ask_details}{confirm_partner_str}"
+                            )
+                    elif action.action_type == ActionType.MARITIME_TRADE and \
+                         action.value and len(action.value) == 2:
+                        give_res_idx = action.value[0]
+                        rec_res_idx = action.value[1]
+                        val_str = f"Give {ALL_RESOURCES_ENUM[give_res_idx]}, Receive {ALL_RESOURCES_ENUM[rec_res_idx]}"
+                    elif action.action_type == ActionType.MOVE_ROBBER and \
+                         action.value and len(action.value) == 2:
+                        tile_c = action.value[0]
+                        victim_c = (
+                            action.value[1].value if action.value[1]
+                            else "No one / Self"
+                        )
+                        val_str = (
+                            f"Move robber to tile {tile_c}, Steal from: {victim_c}"
+                        )
+                    elif action.action_type == ActionType.PLAY_MONOPOLY and \
+                         action.value is not None:
+                        val_str = f"Declare Monopoly on {action.value}"
+                    elif action.action_type == ActionType.PLAY_YEAR_OF_PLENTY and \
+                         action.value and len(action.value) == 2:
+                        res1_idx = action.value[0]
+                        res2_idx = action.value[1]
+                        val_str = f"Take {res1_idx} and {res2_idx} from bank"
 
-                prompt_lines.append(f"  {i}: Type={action.action_type.name},")
-                if '\n' in val_str:
-                    value_parts = val_str.split('\n')
-                    prompt_lines.append(f"       Value={value_parts[0]}")
-                    for part in value_parts[1:]:
-                        prompt_lines.append(f"              {part.lstrip()}")
-                else:
-                    prompt_lines.append(f"       Value={val_str}")
+                    prompt_lines.append(f"  {i}: Type={action.action_type.name},")
+                    if '\n' in val_str:
+                        value_parts = val_str.split('\n')
+                        prompt_lines.append(f"       Value={value_parts[0]}")
+                        for part in value_parts[1:]:
+                            prompt_lines.append(f"              {part.lstrip()}")
+                    else:
+                        prompt_lines.append(f"       Value={val_str}")
 
-        prompt_lines.append(
-            "\nBased on the game state and your strategic goals, "
-        )
-        prompt_lines.append(
-            "which action number from the list above do you choose?"
-        )
-        prompt_lines.append(
-            "Respond with ONLY the integer number of your chosen action."
-        )
-        prompt_lines.append(
-            "For example, if you choose action 0, respond with '0'."
-        )
+            prompt_lines.append(
+                "\nBased on the game state and your strategic goals, "
+            )
+            prompt_lines.append(
+                "which action number from the list above do you choose?"
+            )
+            prompt_lines.append(
+                "Respond with ONLY the integer number of your chosen action."
+            )
+            prompt_lines.append(
+                "For example, if you choose action 0, respond with '0'."
+            )
 
-        final_prompt = "\n".join(prompt_lines)
-        print("--- PROMPT FOR LLM ---")
-        print(final_prompt)
-        print("----------------------")
-        return final_prompt
+            final_prompt = "\n".join(prompt_lines)
+            print("--- PROMPT FOR LLM ---")
+            print(final_prompt)
+            print("----------------------")
+            return final_prompt
+        except Exception as e:
+            print(f"Error formatting full game state: {e}")
+            # 回退到僅格式化行動
+            return self._format_actions_only_for_llm(playable_actions)
+    
+    def _format_actions_only_for_llm(self, playable_actions) -> str:
+        """當遊戲狀態不可用時，僅格式化可用行動"""
+        system_prompt = self._system_prompt()
+        
+        prompt_lines = [
+            system_prompt,
+            "",
+            f"=== TURN FOR {self.color.value} ===",
+            "",
+            "Available Actions:",
+        ]
+        
+        for i, action in enumerate(playable_actions):
+            action_desc = self._format_single_action(action)
+            prompt_lines.append(f"  {i}: {action_desc}")
+        
+        prompt_lines.extend([
+            "",
+            f"Choose the best action (0-{len(playable_actions)-1}) for {self.color.value}:",
+            "Consider the action type and strategic value.",
+            "",
+            "Respond with just the number of your chosen action."
+        ])
+        
+        return "\n".join(prompt_lines)
+    
+    def _format_single_action(self, action) -> str:
+        """格式化單個行動的描述"""
+        try:
+            if action.action_type.name == "BUILD_SETTLEMENT":
+                return f"Build Settlement at node {action.value}"
+            elif action.action_type.name == "BUILD_CITY":
+                return f"Build City at node {action.value}"
+            elif action.action_type.name == "BUILD_ROAD":
+                return f"Build Road between nodes {action.value}"
+            elif action.action_type.name == "BUY_DEVELOPMENT_CARD":
+                return "Buy Development Card"
+            elif action.action_type.name == "MOVE_ROBBER":
+                coord, victim, _ = action.value
+                victim_str = victim.value if victim else "No one"
+                return f"Move Robber to {coord}, steal from {victim_str}"
+            elif action.action_type.name == "MARITIME_TRADE":
+                return f"Maritime Trade: {action.value}"
+            elif action.action_type.name == "END_TURN":
+                return "End Turn"
+            elif action.action_type.name == "ROLL":
+                return "Roll Dice"
+            elif action.action_type.name == "DISCARD":
+                return "Discard Cards (due to 7 roll)"
+            else:
+                return f"{action.action_type.name}: {action.value}"
+        except Exception as e:
+            return f"{action.action_type.name}: {str(action.value)}"
 
     def _parse_llm_response(self, response_text: str, playable_actions: list[Action]) -> Action | None:
         try:
