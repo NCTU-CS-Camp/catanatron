@@ -420,15 +420,48 @@ class GameEngineServer:
                     })
                     return
             
-            # 序列化可用行動
+            # 序列化可用行動 - 確保所有值都是 JSON 可序列化的
             actions_data = []
             for i, action in enumerate(playable_actions):
-                actions_data.append({
-                    'index': i,
-                    'action_type': action.action_type.name,
-                    'value': action.value,
-                    'description': str(action)
-                })
+                try:
+                    # 確保 action.value 是可序列化的
+                    action_value = action.value
+                    
+                    # 處理特殊的值類型
+                    if hasattr(action_value, '__iter__') and not isinstance(action_value, (str, bytes)):
+                        # 處理元組、列表等可迭代對象
+                        try:
+                            # 嘗試轉換為列表，並處理其中的特殊對象
+                            action_value = list(action_value)
+                            # 轉換其中的 Color 對象為字符串
+                            for j, item in enumerate(action_value):
+                                if hasattr(item, 'value'):  # 可能是 Color 或其他枚舉
+                                    action_value[j] = item.value
+                                elif hasattr(item, 'name'):  # 可能是其他枚舉
+                                    action_value[j] = item.name
+                        except Exception:
+                            # 如果轉換失敗，使用字符串表示
+                            action_value = str(action_value)
+                    elif hasattr(action_value, 'value'):  # Color 或其他枚舉
+                        action_value = action_value.value
+                    elif hasattr(action_value, 'name'):  # 其他枚舉
+                        action_value = action_value.name
+                    
+                    actions_data.append({
+                        'index': i,
+                        'action_type': action.action_type.name,
+                        'value': action_value,
+                        'description': str(action)
+                    })
+                except Exception as serialize_error:
+                    logger.warning(f"Error serializing action {i}: {serialize_error}")
+                    # 使用簡化版本
+                    actions_data.append({
+                        'index': i,
+                        'action_type': action.action_type.name,
+                        'value': str(action.value),
+                        'description': str(action)
+                    })
             
             # 向當前玩家請求行動
             await self.send_to_player(current_color, {
