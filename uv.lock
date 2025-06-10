@@ -82,10 +82,14 @@ version = "3.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "flask" },
+    { name = "flask-cors" },
+    { name = "flask-sqlalchemy" },
     { name = "google-genai" },
     { name = "google-generativeai" },
     { name = "networkx" },
     { name = "rich" },
+    { name = "sqlalchemy" },
 ]
 
 [package.optional-dependencies]
@@ -120,8 +124,11 @@ requires-dist = [
     { name = "coverage", marker = "extra == 'dev'" },
     { name = "coveralls", marker = "extra == 'dev'" },
     { name = "fastparquet", marker = "extra == 'gym'" },
+    { name = "flask", specifier = ">=3.1.1" },
     { name = "flask", marker = "extra == 'web'" },
+    { name = "flask-cors", specifier = ">=6.0.0" },
     { name = "flask-cors", marker = "extra == 'web'" },
+    { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
     { name = "flask-sqlalchemy", marker = "extra == 'web'" },
     { name = "google-genai", specifier = ">=1.19.0" },
     { name = "google-genai", marker = "extra == 'web'" },
@@ -136,6 +143,7 @@ requires-dist = [
     { name = "pytest-benchmark", marker = "extra == 'dev'" },
     { name = "pytest-watch", marker = "extra == 'dev'" },
     { name = "rich" },
+    { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "sqlalchemy", marker = "extra == 'web'" },
 ]
 provides-extras = ["gym", "web", "dev"]
