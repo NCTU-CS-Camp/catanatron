@@ -45,7 +45,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <h1 className="logo">Catanatron</h1>
+      <h1 className="logo">卡坦島</h1> 
 
       <div className="switchable">
         {!loading ? (
@@ -66,7 +66,7 @@ export default function HomePage() {
                       numPlayers === value ? "selected" : ""
                     }`}
                   >
-                    {value} Players
+                    {value} 人對戰
                   </Button>
                 ))}
               </div>
@@ -76,21 +76,28 @@ export default function HomePage() {
               color="primary"
               onClick={() => handleCreateGame(GameMode.HUMAN_VS_CATANATRON)}
             >
-              Play against Catanatron
+              跟卡坦島PK
             </Button>
             <Button
               variant="contained"
               color="secondary"
               onClick={() => handleCreateGame(GameMode.RANDOM_BOTS)}
             >
-              Watch Random Bots
+              觀看人機對決
             </Button>
             <Button
               variant="contained"
               color="secondary"
               onClick={() => handleCreateGame(GameMode.CATANATRON_BOTS)}
             >
-              Watch Catanatron
+              觀戰
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => navigate("/lobby")}
+            >
+              線上對戰(待開發)
             </Button>
           </>
         ) : (

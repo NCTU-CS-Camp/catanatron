@@ -106,7 +106,7 @@ export default function PlayerStateBox({ playerState, playerKey, color }) {
           title="Knights Played"
         >
           <span>{playerState[`${playerKey}_PLAYED_KNIGHT`]}</span>
-          <small>knights</small>
+          <small>騎士</small>
         </div>
         <div
           className={cn("num-roads center-text", {
@@ -115,7 +115,7 @@ export default function PlayerStateBox({ playerState, playerKey, color }) {
           title="Longest Road"
         >
           {playerState[`${playerKey}_LONGEST_ROAD_LENGTH`]}
-          <small>roads</small>
+          <small>道路</small>
         </div>
         <div
           className={cn("victory-points center-text", {
@@ -124,7 +124,7 @@ export default function PlayerStateBox({ playerState, playerKey, color }) {
           title="Victory Points"
         >
           {actualVps}
-          <small>VPs</small>
+          <small>分數</small>
         </div>
       </div>
     </div>
