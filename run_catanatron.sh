@@ -1,6 +1,18 @@
 #!/bin/bash
 # Catanatron 遊戲啟動腳本
+
+# 設定日誌檔案
+LOG_FILE="server.log"
+
+# 清理舊的日誌檔案
+>"$LOG_FILE"
+
+# 重定向所有輸出到 tee，同時顯示在終端和保存到日誌檔案
+exec > >(tee -a "$LOG_FILE")
+exec 2>&1
+
 echo -e "\033[1;36m啟動 Catanatron 多人遊戲...\033[0m"
+echo -e "\033[90m日誌將保存到: $LOG_FILE\033[0m"
 
 # 設定玩家端口映射 - 使用簡單的函數替代關聯陣列
 get_port_for_color() {
@@ -43,7 +55,7 @@ sleep 2
 
 # 啟動遊戲伺服器（不需要指定端口，它會自動使用 8001-8004）
 echo -e "\033[90m啟動遊戲伺服器...\033[0m"
-uv run python game_engine_server.py &
+uv run python game_engine_server.py 2>&1 | tee -a "$LOG_FILE" &
 SERVER_PID=$!
 
 # 等待伺服器啟動
@@ -70,7 +82,7 @@ CLIENT_PIDS=()
 for COLOR in "${COLORS[@]}"; do
     PORT=$(get_port_for_color $COLOR)
     echo -e "\033[90m啟動 $COLOR 玩家 (端口: $PORT)...\033[0m"
-    uv run python llm_agent_client.py --port $PORT --color $COLOR --debug &
+    uv run python llm_agent_client.py --port $PORT --color $COLOR --debug 2>&1 | tee -a "$LOG_FILE" &
     CLIENT_PID=$!
     CLIENT_PIDS+=($CLIENT_PID)
     echo -e "\033[32m$COLOR 玩家已啟動 (PID: $CLIENT_PID, 端口: $PORT)\033[0m"
@@ -110,6 +122,7 @@ cleanup() {
     fi
 
     echo -e "\033[1;32m清理完成！\033[0m"
+    echo -e "\033[90m完整日誌已保存到: $LOG_FILE\033[0m"
     exit 0
 }
 
