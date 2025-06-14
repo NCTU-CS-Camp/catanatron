@@ -438,14 +438,16 @@ class GameEngineServer:
                             action_value = list(action_value)
                             # 轉換其中的 Color 對象為字符串
                             for j, item in enumerate(action_value):
-                                if hasattr(item, 'value'):  # 可能是 Color 或其他枚舉
+                                if hasattr(item, 'value') and hasattr(item, 'name'):  # Color 枚舉
                                     action_value[j] = item.value
-                                elif hasattr(item, 'name'):  # 可能是其他枚舉
+                                elif hasattr(item, 'name'):  # 其他枚舉
                                     action_value[j] = item.name
+                                elif item is None:
+                                    action_value[j] = None
                         except Exception:
                             # 如果轉換失敗，使用字符串表示
                             action_value = str(action_value)
-                    elif hasattr(action_value, 'value'):  # Color 或其他枚舉
+                    elif hasattr(action_value, 'value') and hasattr(action_value, 'name'):  # Color 枚舉
                         action_value = action_value.value
                     elif hasattr(action_value, 'name'):  # 其他枚舉
                         action_value = action_value.name

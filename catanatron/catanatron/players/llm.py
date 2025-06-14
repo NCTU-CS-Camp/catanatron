@@ -3,6 +3,10 @@ import random
 import json
 from google import genai
 from google.genai import types
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # For type hinting
 from catanatron.models.enums import (
@@ -38,7 +42,7 @@ class LLMPlayer(Player):
         self,
         color: Color,
         model_name: str = "gemini-2.0-flash",
-        api_key: str | None = "AIzaSyADwr6_wUxp_GoU0zKZl-OOP-UPXBy5s9w"
+        api_key: str | None = None
     ):
         super().__init__(color, is_bot=True)
         self.model_name = model_name
@@ -48,7 +52,7 @@ class LLMPlayer(Player):
             )
             if not self.api_key:
                 raise ValueError(
-                    "Google API Key not found. Set GOOGLE_API_KEY env var "
+                    "Google API Key not found. Set GOOGLE_API_KEY in .env file "
                     "or pass it directly."
                 )
             self.client = genai.Client(
@@ -93,19 +97,10 @@ class LLMPlayer(Player):
         
         # 原有的完整遊戲狀態格式化邏輯
         try:
-            print(game.id)
-
             state_json = json.dumps(game, cls=GameEncoder)
-            # print(state)
-            print(game.id)
-
-
             state = game.state
             board = state.board
             prompt_lines = [self._system_prompt()]
-            # print(prompt_lines)
-            prompt_lines.append(str(state_json))
-            print(str(state_json))
 
             prompt_lines.append(
                 f"You are a Catan player, your color is: {self.color.value}."
@@ -441,9 +436,9 @@ class LLMPlayer(Player):
                 "For example, if you choose action 0, respond with '0'."
             )
 
-            # 🔧 添加更強的格式約束
+            # 添加更強的格式約束
             prompt_lines.append(
-                "\n🎯 CRITICAL: You must respond with ONLY a single integer number."
+                "\nCRITICAL: You must respond with ONLY a single integer number."
             )
             prompt_lines.append(
                 "Examples of CORRECT responses: '0', '5', '12'"
@@ -483,8 +478,8 @@ class LLMPlayer(Player):
             f"Choose the best action (0-{len(playable_actions)-1}) for {self.color.value}:",
             "Consider the action type and strategic value.",
             "",
-            # 🔧 添加更強的格式約束
-            "🎯 CRITICAL: You must respond with ONLY a single integer number.",
+            # 添加更強的格式約束
+            "CRITICAL: You must respond with ONLY a single integer number.",
             "Examples of CORRECT responses: '0', '5', '12'",
             "Examples of INCORRECT responses: 'I choose action 5', 'Action 0 looks good', 'Let me think...'",
             "",
