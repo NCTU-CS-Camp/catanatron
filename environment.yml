@@ -1,0 +1,20 @@
+name: catanatron
+channels:
+  - conda-forge          # one stop for most modern packages
+  - defaults
+dependencies:
+  # --- core runtime requirements ---------------------------------
+  - python >=3.11
+  - click
+  - networkx
+  - rich
+  - flask
+  - flask-cors
+  - sqlalchemy
+  - flask-sqlalchemy
+  - websockets           # pulls in urllib3 etc.
+  - grpcio               # faster than building with pip
+  - pip
+  - pip:
+    - google-generativeai>=0.8.5
+    - google-genai>=1.19.0
