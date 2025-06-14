@@ -41,9 +41,12 @@ from catanatron.state_functions import (
 )
 
 
-def generate_playable_actions(state) -> List[Action]:
-    action_prompt = state.current_prompt
+def generate_playable_actions(state):
+    """生成所有可用行動"""
+    actions = []
+    
     color = state.current_color()
+    action_prompt = state.current_prompt
 
     if action_prompt == ActionPrompt.BUILD_INITIAL_SETTLEMENT:
         return settlement_possibilities(state, color, True)
@@ -52,49 +55,60 @@ def generate_playable_actions(state) -> List[Action]:
     elif action_prompt == ActionPrompt.MOVE_ROBBER:
         return robber_possibilities(state, color)
     elif action_prompt == ActionPrompt.PLAY_TURN:
-        if state.is_road_building:
-            return road_building_possibilities(state, color, False)
         actions = []
-        # Allow playing dev cards before and after rolling
-        if player_can_play_dev(state, color, "YEAR_OF_PLENTY"):
-            actions.extend(year_of_plenty_possibilities(color, state.resource_freqdeck))
-        if player_can_play_dev(state, color, "MONOPOLY"):
-            actions.extend(monopoly_possibilities(color))
-        if player_can_play_dev(state, color, "KNIGHT"):
-            actions.append(Action(color, ActionType.PLAY_KNIGHT_CARD, None))
-        if (
-            player_can_play_dev(state, color, "ROAD_BUILDING")
-            and len(road_building_possibilities(state, color, False)) > 0
-        ):
-            actions.append(Action(color, ActionType.PLAY_ROAD_BUILDING, None))
+
         if not player_has_rolled(state, color):
             actions.append(Action(color, ActionType.ROLL, None))
-        else:
-            actions.append(Action(color, ActionType.END_TURN, None))
-            actions.extend(road_building_possibilities(state, color))
+            # return actions  # must roll first
+
+        # Build city (over existing settlement)
+        settlements = get_player_buildings(state, color, SETTLEMENT)
+        for node_id in settlements:
+            if player_can_afford_city(state, color):
+                actions.append(Action(color, ActionType.BUILD_CITY, node_id))
+
+        # Build settlement
+        if player_can_afford_settlement(state, color):
             actions.extend(settlement_possibilities(state, color))
-            actions.extend(city_possibilities(state, color))
 
-            can_buy_dev_card = (
-                player_can_afford_dev_card(state, color)
-                and len(state.development_listdeck) > 0
-            )
-            if can_buy_dev_card:
-                actions.append(Action(color, ActionType.BUY_DEVELOPMENT_CARD, None))
+        # Build road
+        if player_can_afford_road(state, color):
+            actions.extend(road_possibilities(state, color))
 
-            # Trade
-            actions.extend(maritime_trade_possibilities(state, color))
+        # Buy dev card
+        if player_can_afford_dev_card(state, color):
+            actions.append(Action(color, ActionType.BUY_DEVELOPMENT_CARD, None))
+
+        # Play dev cards (if played has_rolled and hasn't played one this turn)
+        if player_has_rolled(state, color) and can_play_dev(state, color):
+            actions.extend(dev_card_possibilities(state, color))
+
+        # Trade
+        actions.extend(maritime_trade_possibilities(state, color))
+        
+        # 🔥 這裡是關鍵：添加玩家間交易！
+        if player_has_rolled(state, color) and not getattr(state, 'is_resolving_trade', False):
+            actions.extend(domestic_trade_possibilities(state, color))
+
+        # End turn (should be available for current player, if rolled)
+        if player_has_rolled(state, color):
+            actions.append(Action(color, ActionType.END_TURN, None))
+
         return actions
     elif action_prompt == ActionPrompt.DISCARD:
         return discard_possibilities(color)
     elif action_prompt == ActionPrompt.DECIDE_TRADE:
-        actions = [Action(color, ActionType.REJECT_TRADE, state.current_trade)]
+        # 🔧 REJECT_TRADE 也應該使用 10-tuple
+        trade_value = state.current_trade[:10]  # 只取前10個元素
+        actions = [Action(color, ActionType.REJECT_TRADE, trade_value)]
 
         # can only accept if have enough cards
         freqdeck = get_player_freqdeck(state, color)
         asked = state.current_trade[5:10]
         if freqdeck_contains(freqdeck, asked):
-            actions.append(Action(color, ActionType.ACCEPT_TRADE, state.current_trade))
+                # 🔧 ACCEPT_TRADE 應該使用 10-tuple (不包含發起玩家索引)
+            trade_value = state.current_trade[:10]  # 只取前10個元素
+            actions.append(Action(color, ActionType.ACCEPT_TRADE, trade_value))
 
         return actions
     elif action_prompt == ActionPrompt.DECIDE_ACCEPTEES:
@@ -102,7 +116,7 @@ def generate_playable_actions(state) -> List[Action]:
         actions = [Action(color, ActionType.CANCEL_TRADE, None)]
 
         for other_color, accepted in zip(state.colors, state.acceptees):
-            if accepted:
+            if accepted is True:  # 🔧 明確檢查 True
                 actions.append(
                     Action(
                         color,
@@ -317,3 +331,122 @@ def inner_maritime_trade_possibilities(hand_freqdeck, bank_freqdeck, port_resour
                     trade_offers.add(trade_offer)
 
     return trade_offers
+
+
+def domestic_trade_possibilities(state, color) -> List[Action]:
+    """生成玩家間交易提案"""
+    actions = []
+    
+    # 獲取玩家資源
+    key = player_key(state, color)
+    player_resources = [
+        state.player_state.get(f'{key}_WOOD_IN_HAND', 0),
+        state.player_state.get(f'{key}_BRICK_IN_HAND', 0), 
+        state.player_state.get(f'{key}_SHEEP_IN_HAND', 0),
+        state.player_state.get(f'{key}_WHEAT_IN_HAND', 0),
+        state.player_state.get(f'{key}_ORE_IN_HAND', 0),
+    ]
+    
+    total_resources = sum(player_resources)
+    
+    # 需要至少 1 個資源才能提出交易
+    if total_resources < 1:
+        return actions
+    
+    # 生成 1:1 交易提案
+    for give_resource_idx, give_count in enumerate(player_resources):
+        if give_count > 0:  # 有這種資源可以給出
+            for ask_resource_idx in range(5):
+                if give_resource_idx != ask_resource_idx:  # 不同資源
+                    # 創建交易格式：[give_wood, give_brick, give_sheep, give_wheat, give_ore, ask_wood, ask_brick, ask_sheep, ask_wheat, ask_ore]
+                    trade_offer = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    trade_offer[give_resource_idx] = 1  # 給出 1 個資源
+                    trade_offer[5 + ask_resource_idx] = 1  # 要求 1 個資源
+                    
+                    actions.append(Action(color, ActionType.OFFER_TRADE, tuple(trade_offer)))
+    
+    # 如果有多個資源，也生成 2:1 交易
+    for give_resource_idx, give_count in enumerate(player_resources):
+        if give_count >= 2:  # 有 2+ 個資源
+            for ask_resource_idx in range(5):
+                if give_resource_idx != ask_resource_idx:
+                    # 2:1 交易
+                    trade_offer = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    trade_offer[give_resource_idx] = 2
+                    trade_offer[5 + ask_resource_idx] = 1
+                    
+                    actions.append(Action(color, ActionType.OFFER_TRADE, tuple(trade_offer)))
+    
+    return actions
+
+
+def player_can_afford_city(state, color):
+    """檢查玩家是否能負擔得起城市"""
+    from catanatron.models.decks import CITY_COST_FREQDECK
+    return player_resource_freqdeck_contains(state, color, CITY_COST_FREQDECK)
+
+def player_can_afford_settlement(state, color):
+    """檢查玩家是否能負擔得起定居點"""
+    from catanatron.models.decks import SETTLEMENT_COST_FREQDECK
+    return player_resource_freqdeck_contains(state, color, SETTLEMENT_COST_FREQDECK)
+
+def player_can_afford_road(state, color):
+    """檢查玩家是否能負擔得起道路"""
+    from catanatron.models.decks import ROAD_COST_FREQDECK
+    return player_resource_freqdeck_contains(state, color, ROAD_COST_FREQDECK)
+
+def can_play_dev(state, color):
+    """檢查玩家是否可以玩發展卡"""
+    # 檢查玩家是否可以玩任何發展卡
+    from catanatron.state_functions import player_key
+    key = player_key(state, color)
+    
+    # 檢查是否已經在本回合玩過發展卡
+    if state.player_state.get(f"{key}_HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN", False):
+        return False
+    
+    # 檢查是否有任何可以玩的發展卡
+    dev_cards = ["KNIGHT", "YEAR_OF_PLENTY", "MONOPOLY", "ROAD_BUILDING"]
+    for dev_card in dev_cards:
+        if (state.player_state.get(f"{key}_{dev_card}_IN_HAND", 0) >= 1 and
+            state.player_state.get(f"{key}_{dev_card}_OWNED_AT_START", False)):
+            return True
+    
+    return False
+
+def road_possibilities(state, color):
+    """生成道路建設可能性"""
+    return road_building_possibilities(state, color)
+
+def dev_card_possibilities(state, color):
+    """生成發展卡遊玩可能性"""
+    actions = []
+    
+    from catanatron.state_functions import player_key
+    key = player_key(state, color)
+    
+    # 檢查是否已經在本回合玩過發展卡
+    if state.player_state.get(f"{key}_HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN", False):
+        return actions
+    
+    # Knight card
+    if (state.player_state.get(f"{key}_KNIGHT_IN_HAND", 0) >= 1 and
+        not state.player_state.get(f"{key}_KNIGHT_OWNED_AT_START", True)):
+        actions.append(Action(color, ActionType.PLAY_KNIGHT_CARD, None))
+    
+    # Year of Plenty
+    if (state.player_state.get(f"{key}_YEAR_OF_PLENTY_IN_HAND", 0) >= 1 and
+        not state.player_state.get(f"{key}_YEAR_OF_PLENTY_OWNED_AT_START", True)):
+        actions.extend(year_of_plenty_possibilities(color, state.resource_freqdeck))
+    
+    # Monopoly
+    if (state.player_state.get(f"{key}_MONOPOLY_IN_HAND", 0) >= 1 and
+        not state.player_state.get(f"{key}_MONOPOLY_OWNED_AT_START", True)):
+        actions.extend(monopoly_possibilities(color))
+    
+    # Road Building
+    if (state.player_state.get(f"{key}_ROAD_BUILDING_IN_HAND", 0) >= 1 and
+        not state.player_state.get(f"{key}_ROAD_BUILDING_OWNED_AT_START", True)):
+        actions.append(Action(color, ActionType.PLAY_ROAD_BUILDING, None))
+    
+    return actions

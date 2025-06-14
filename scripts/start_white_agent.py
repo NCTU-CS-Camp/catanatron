@@ -13,7 +13,7 @@ async def main():
         server_host="localhost",
         server_port=8003,
         color=Color.WHITE,
-        model_name="gemini-2.5-flash-preview-05-20"
+        model_name="gemini-1.5-flash"
     )
     
     print("Starting WHITE LLM Agent...")

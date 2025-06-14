@@ -176,7 +176,7 @@ class State:
 
             self.is_resolving_trade = False
             self.current_trade: Tuple = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-            self.acceptees = tuple(False for _ in self.colors)
+            self.acceptees = tuple(None for _ in self.colors)  # 🔧 改用 None 初始化
 
             self.playable_actions = generate_playable_actions(self)
 
@@ -611,80 +611,144 @@ def apply_action(state: State, action: Action):
         state.current_prompt = ActionPrompt.PLAY_TURN
         state.playable_actions = generate_playable_actions(state)
     elif action.action_type == ActionType.OFFER_TRADE:
+        # 設置交易狀態
         state.is_resolving_trade = True
-        state.current_trade = (*action.value, state.current_turn_index)
-
-        # go in seating order; order won't matter because of "acceptees hook"
-        state.current_player_index = next(
-            i for i, c in enumerate(state.colors) if c != action.color
-        )  # cant ask yourself
-        state.current_prompt = ActionPrompt.DECIDE_TRADE
+        
+        # 🔧 修復：使用交易發起者的實際索引，而不是 current_turn_index
+        initiator_index = state.colors.index(action.color)  # 正確的發起者索引
+        state.current_trade = (*action.value, initiator_index)
+        state.acceptees = tuple(None for _ in state.colors)
+        
+        # 找到第一個需要決定的玩家（不是提議者）
+        try:
+            state.current_player_index = next(
+                i for i, c in enumerate(state.colors) 
+                if i != initiator_index  # 🔧 修復：使用正確的發起者索引
+            )
+            state.current_prompt = ActionPrompt.DECIDE_TRADE
+        except StopIteration:
+            # 只有一個玩家的情況（不應該發生）
+            reset_trading_state(state)
 
         state.playable_actions = generate_playable_actions(state)
-    elif action.action_type == ActionType.ACCEPT_TRADE:
-        # add yourself to self.acceptees
+
+    elif action.action_type == ActionType.CANCEL_TRADE:
+        print(f"🔄 {action.color.value} is canceling the trade")
+        
+        # 🔧 修復：從 current_trade 獲取正確的發起者索引
+        if state.is_resolving_trade and len(state.current_trade) > 10:
+            trade_initiator_index = state.current_trade[10]  # 獲取發起者索引
+            trade_initiator_color = state.colors[trade_initiator_index]
+            
+            # 檢查是否為交易發起者
+            if action.color == trade_initiator_color:
+                reset_trading_state(state)
+                
+                # 回到交易發起者的正常回合
+                state.current_player_index = trade_initiator_index
+                state.current_prompt = ActionPrompt.PLAY_TURN
+                
+                print(f"✅ Trade canceled by {action.color.value}, returning to normal turn")
+            else:
+                print(f"❌ {action.color.value} cannot cancel trade - not the initiator")
+        else:
+            print(f"❌ {action.color.value} cannot cancel trade - no active trade")
+        
+        # 重新生成可用行動
+        state.playable_actions = generate_playable_actions(state)
+
+    elif action.action_type == ActionType.REJECT_TRADE:
+        print(f"❌ {action.color.value} is rejecting the trade")
+        
+        # 將拒絕標記到接受者列表中
         index = state.colors.index(action.color)
-        new_acceptess = list(state.acceptees)
-        new_acceptess[index] = True  # type: ignore
-        state.acceptees = tuple(new_acceptess)
+        new_acceptees = list(state.acceptees)
+        new_acceptees[index] = False  # 明確標記為拒絕
+        state.acceptees = tuple(new_acceptees)
 
         try:
-            # keep going around table w/o asking yourself or players that have answered
+            # 🔧 修復：尋找下一個需要決定的玩家（檢查 None 而不是 False）
+            initiator_index = state.current_trade[10]  # 獲取發起者索引
             state.current_player_index = next(
-                i
-                for i, c in enumerate(state.colors)
-                if c != action.color and i > state.current_player_index
+                i for i, c in enumerate(state.colors) 
+                if i != initiator_index and  # 🔧 修復：使用正確的發起者索引  # 不是提議者
+                   state.acceptees[i] is None  # 🔧 關鍵修復：檢查是否為 None（未決定）
             )
-            # .is_resolving_trade, .current_trade, .current_prompt, .acceptees stay the same
+            state.current_prompt = ActionPrompt.DECIDE_TRADE
         except StopIteration:
-            # by this action, there is at least 1 acceptee, so go to DECIDE_ACCEPTEES
-            # .is_resolving_trade, .current_trade, .acceptees stay the same
-            state.current_player_index = state.current_turn_index
+            # 🔧 修復：使用 current_trade 中存儲的發起者索引
+            initiator_index = state.current_trade[10]  # 獲取發起者索引
+            
+            print(f"🔍 All players decided. Acceptees: {state.acceptees}")
+            
+            # 檢查是否有任何玩家接受交易（排除發起者）
+            non_initiator_acceptees = [
+                acceptee for i, acceptee in enumerate(state.acceptees)
+                if i != initiator_index  # 🔧 修復：使用正確的發起者索引
+            ]
+            has_acceptees = any(acceptee is True for acceptee in non_initiator_acceptees)
+            print(f"🔍 Non-initiator acceptees: {non_initiator_acceptees}")
+            print(f"🔍 Has acceptees: {has_acceptees}")
+            
+            # 所有玩家都已決定，回到提議者讓其選擇確認交易
+            state.current_player_index = initiator_index  # 🔧 修復
             state.current_prompt = ActionPrompt.DECIDE_ACCEPTEES
 
         state.playable_actions = generate_playable_actions(state)
-    elif action.action_type == ActionType.REJECT_TRADE:
-        try:
-            # keep going around table w/o asking yourself or players that have answered
-            state.current_player_index = next(
-                i
-                for i, c in enumerate(state.colors)
-                if c != action.color and i > state.current_player_index
-            )
-            # .is_resolving_trade, .current_trade, .current_prompt, .acceptees stay the same
-        except StopIteration:
-            # if no acceptees at this point, go back to PLAY_TURN
-            if sum(state.acceptees) == 0:
-                reset_trading_state(state)
 
-                state.current_player_index = state.current_turn_index
-                state.current_prompt = ActionPrompt.PLAY_TURN
-            else:
-                # go to offering player with all the answers
-                # .is_resolving_trade, .current_trade, .acceptees stay the same
-                state.current_player_index = state.current_turn_index
-                state.current_prompt = ActionPrompt.DECIDE_ACCEPTEES
+    elif action.action_type == ActionType.ACCEPT_TRADE:
+        print(f"✅ {action.color.value} is accepting the trade")
+        
+        # 將自己加入到接受者列表中
+        index = state.colors.index(action.color)
+        new_acceptees = list(state.acceptees)
+        new_acceptees[index] = True  # 標記該玩家接受交易
+        state.acceptees = tuple(new_acceptees)
+
+        try:
+            # 🔧 修復：尋找下一個需要決定的玩家（檢查 None）
+            initiator_index = state.current_trade[10]  # 獲取發起者索引
+            state.current_player_index = next(
+                i for i, c in enumerate(state.colors) 
+                if i != initiator_index and  # 🔧 修復：使用正確的發起者索引  # 不是提議者
+                   state.acceptees[i] is None  # 🔧 關鍵修復：檢查是否為 None（未決定）
+            )
+            state.current_prompt = ActionPrompt.DECIDE_TRADE
+        except StopIteration:
+            # 所有玩家都已決定，回到提議者讓其選擇確認交易
+            state.current_player_index = initiator_index  # 🔧 修復
+            state.current_prompt = ActionPrompt.DECIDE_ACCEPTEES
 
         state.playable_actions = generate_playable_actions(state)
+
     elif action.action_type == ActionType.CONFIRM_TRADE:
-        # apply trade
-        offering = action.value[:5]
-        asking = action.value[5:10]
-        enemy_color = action.value[10]
+        print(f"🤝 {action.color.value} is confirming the trade")
+        
+        # 執行交易
+        offering = action.value[:5]      # 提供的資源 (前5個)
+        asking = action.value[5:10]      # 要求的資源 (第6-10個)
+        enemy_color = action.value[10]   # 接受交易的玩家顏色
+        
+        # 從提議者手中扣除提供的資源，增加要求的資源
         player_freqdeck_subtract(state, action.color, offering)
         player_freqdeck_add(state, action.color, asking)
+        
+        # 從接受者手中扣除給出的資源，增加收到的資源
         player_freqdeck_subtract(state, enemy_color, asking)
         player_freqdeck_add(state, enemy_color, offering)
 
-        reset_trading_state(state)
+        print(f"💰 Trade completed: {action.color.value} gave {offering} and received {asking}")
+        print(f"💰 {enemy_color.value} gave {asking} and received {offering}")
 
+        # 重置交易狀態
+        reset_trading_state(state)
+        
+        # 回到原玩家的回合
         state.current_player_index = state.current_turn_index
         state.current_prompt = ActionPrompt.PLAY_TURN
-    elif action.action_type == ActionType.CANCEL_TRADE:
-        reset_trading_state(state)
+        
+        state.playable_actions = generate_playable_actions(state)
 
-        state.current_player_index = state.current_turn_index
-        state.current_prompt = ActionPrompt.PLAY_TURN
     else:
         raise ValueError("Unknown ActionType " + str(action.action_type))
 
@@ -694,6 +758,12 @@ def apply_action(state: State, action: Action):
 
 
 def reset_trading_state(state):
+    """重置所有交易相關狀態"""
     state.is_resolving_trade = False
-    state.current_trade = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    state.acceptees = tuple(False for _ in state.colors)
+    state.current_trade = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)  # 11個0的tuple
+    # 🔧 改用三元狀態：None=未決定, True=接受, False=拒絕
+    state.acceptees = tuple(None for _ in state.colors)      # 重置接受者狀態
+    
+    # 🔧 確保當前提示狀態正確
+    if hasattr(state, 'current_prompt') and state.current_prompt in [ActionPrompt.DECIDE_TRADE, ActionPrompt.DECIDE_ACCEPTEES]:
+        state.current_prompt = ActionPrompt.PLAY_TURN

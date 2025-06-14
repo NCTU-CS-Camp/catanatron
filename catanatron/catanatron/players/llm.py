@@ -37,8 +37,8 @@ class LLMPlayer(Player):
     def __init__(
         self,
         color: Color,
-        model_name: str = "gemini-2.5-flash-preview-05-20",
-        api_key: str | None = "AIzaSyCxbVjDyqLssYuc4VWqbHK34YDeuCz7_uQ"
+        model_name: str = "gemini-2.0-flash",
+        api_key: str | None = "AIzaSyADwr6_wUxp_GoU0zKZl-OOP-UPXBy5s9w"
     ):
         super().__init__(color, is_bot=True)
         self.model_name = model_name
@@ -441,10 +441,21 @@ class LLMPlayer(Player):
                 "For example, if you choose action 0, respond with '0'."
             )
 
+            # 🔧 添加更強的格式約束
+            prompt_lines.append(
+                "\n🎯 CRITICAL: You must respond with ONLY a single integer number."
+            )
+            prompt_lines.append(
+                "Examples of CORRECT responses: '0', '5', '12'"
+            )
+            prompt_lines.append(
+                "Examples of INCORRECT responses: 'I choose action 5', 'Action 0 looks good', 'Let me think...'"
+            )
+            prompt_lines.append(
+                "\nWhich action number do you choose? (Respond with ONLY the number)"
+            )
+
             final_prompt = "\n".join(prompt_lines)
-            print("--- PROMPT FOR LLM ---")
-            print(final_prompt)
-            print("----------------------")
             return final_prompt
         except Exception as e:
             print(f"Error formatting full game state: {e}")
@@ -472,7 +483,12 @@ class LLMPlayer(Player):
             f"Choose the best action (0-{len(playable_actions)-1}) for {self.color.value}:",
             "Consider the action type and strategic value.",
             "",
-            "Respond with just the number of your chosen action."
+            # 🔧 添加更強的格式約束
+            "🎯 CRITICAL: You must respond with ONLY a single integer number.",
+            "Examples of CORRECT responses: '0', '5', '12'",
+            "Examples of INCORRECT responses: 'I choose action 5', 'Action 0 looks good', 'Let me think...'",
+            "",
+            "Which action number do you choose? (Respond with ONLY the number)"
         ])
         
         return "\n".join(prompt_lines)
@@ -551,42 +567,27 @@ class LLMPlayer(Player):
         prompt = self._format_game_state_for_llm(game, playable_actions)
         
         try:
-            print(
-                f"LLMAgent for {self.color.value}: Sending prompt to "
-                f"Gemini model {self.model_name}..."
-            )
+            print(f"LLMAgent for {self.color.value}: Sending prompt to Gemini model {self.model_name}...")
+            
+            # 使用簡化的配置
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(
-                        include_thoughts=True,
-                        thinking_budget=1024
-                    )
+                    # 移除 thinking_config，因為不是所有模型都支援
+                    temperature=0.7,
+                    max_output_tokens=100  # 限制輸出長度，因為我們只需要一個數字
                 )
-            )   
-            for part in response.candidates[0].content.parts:
-                if not part.text:
-                    continue
-                if part.thought:
-                    print("Thought summary:")
-                    print(part.text)
-                    print()
-                else:
-                    print("Answer:")
-                    print(part.text)
-                    print()
+            )
+            
             llm_response_text = response.text
             print(f"LLM {self.color.value}: RX response: '{llm_response_text}'")
+            
         except Exception as e:
-            print(
-                f"LLMAgent for {self.color.value}: Error calling Gemini API: {e}. "
-                f"Defaulting to random action."
-            )
+            print(f"LLMAgent for {self.color.value}: Error calling Gemini API: {e}. Defaulting to random action.")
             return random.choice(playable_actions)
         
         chosen_action = self._parse_llm_response(llm_response_text, playable_actions)
-        # print(f"LLM {self.color.value} chose action: {chosen_action}")
         return chosen_action
 
     def __repr__(self):

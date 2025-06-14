@@ -115,7 +115,7 @@ class ActionType(Enum):
     # Values for all three is a 10-resource tuple, first 5 is offered freqdeck, last 5 is
     #   receiving freqdeck.
     OFFER_TRADE = "OFFER_TRADE"
-    ACCEPT_TRADE = "ACCEPT_TRADE"
+    ACCEPT_TRADE = "ACCEPT_TRADE"  
     REJECT_TRADE = "REJECT_TRADE"
     # CONFIRM_TRADE value is 11-tuple. first 10 as in OFFER_TRADE, last is color of accepting player
     CONFIRM_TRADE = "CONFIRM_TRADE"
