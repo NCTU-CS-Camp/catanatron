@@ -85,11 +85,13 @@ class GameEngineServer:
 
     async def handle_player_connection(self, websocket, port: int, color: Color):
         """處理玩家連接"""
-        logger.info(f"Player {color.value} connected on port {port}")
+        # 根據端口確定正確的顏色
+        actual_color = self.port_color_mapping.get(port, color)
+        logger.info(f"Player {actual_color.value} connected on port {port}")
         
         # 註冊玩家連接
-        self.player_connections[color] = PlayerConnection(
-            color=color,
+        self.player_connections[actual_color] = PlayerConnection(
+            color=actual_color,
             websocket=websocket,
             port=port,
             connected=True
@@ -97,11 +99,11 @@ class GameEngineServer:
         
         try:
             # 發送歡迎訊息
-            await self.send_to_player(color, {
+            await self.send_to_player(actual_color, {
                 'type': 'welcome',
-                'color': color.value,
+                'color': actual_color.value,
                 'port': port,
-                'message': f'Connected as {color.value} player'
+                'message': f'Connected as {actual_color.value} player'
             })
             
             # 檢查是否所有玩家都已連接
@@ -109,17 +111,17 @@ class GameEngineServer:
             
             # 監聽玩家訊息
             async for message in websocket:
-                await self.handle_player_message(color, message)
+                await self.handle_player_message(actual_color, message)
                 
         except websockets.exceptions.ConnectionClosed:
-            logger.info(f"Player {color.value} disconnected")
+            logger.info(f"Player {actual_color.value} disconnected")
         except Exception as e:
-            logger.error(f"Error handling player {color.value}: {e}")
+            logger.error(f"Error handling player {actual_color.value}: {e}")
             traceback.print_exc()
         finally:
             # 清理連接
-            if color in self.player_connections:
-                self.player_connections[color].connected = False
+            if actual_color in self.player_connections:
+                self.player_connections[actual_color].connected = False
 
     async def handle_player_message(self, color: Color, message: str):
         """處理來自玩家的訊息"""
