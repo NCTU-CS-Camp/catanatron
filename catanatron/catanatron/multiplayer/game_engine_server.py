@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+from websockets.legacy.server import WebSocketServerProtocol
 import json
 import threading
 from typing import Dict, Optional, List
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PlayerConnection:
     color: Color
-    websocket: websockets.WebSocketServerProtocol
+    websocket: WebSocketServerProtocol
     port: int
     connected: bool = True
 
