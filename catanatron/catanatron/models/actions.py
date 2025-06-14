@@ -98,7 +98,7 @@ def generate_playable_actions(state):
     elif action_prompt == ActionPrompt.DISCARD:
         return discard_possibilities(color)
     elif action_prompt == ActionPrompt.DECIDE_TRADE:
-        # 🔧 REJECT_TRADE 也應該使用 10-tuple
+        # REJECT_TRADE 也應該使用 10-tuple
         trade_value = state.current_trade[:10]  # 只取前10個元素
         actions = [Action(color, ActionType.REJECT_TRADE, trade_value)]
 
@@ -106,7 +106,7 @@ def generate_playable_actions(state):
         freqdeck = get_player_freqdeck(state, color)
         asked = state.current_trade[5:10]
         if freqdeck_contains(freqdeck, asked):
-                # 🔧 ACCEPT_TRADE 應該使用 10-tuple (不包含發起玩家索引)
+                # ACCEPT_TRADE 應該使用 10-tuple (不包含發起玩家索引)
             trade_value = state.current_trade[:10]  # 只取前10個元素
             actions.append(Action(color, ActionType.ACCEPT_TRADE, trade_value))
 
@@ -116,7 +116,7 @@ def generate_playable_actions(state):
         actions = [Action(color, ActionType.CANCEL_TRADE, None)]
 
         for other_color, accepted in zip(state.colors, state.acceptees):
-            if accepted is True:  # 🔧 明確檢查 True
+            if accepted is True:  # 明確檢查 True
                 actions.append(
                     Action(
                         color,

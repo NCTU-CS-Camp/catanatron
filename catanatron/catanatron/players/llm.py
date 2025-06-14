@@ -98,9 +98,14 @@ class LLMPlayer(Player):
         # 原有的完整遊戲狀態格式化邏輯
         try:
             state_json = json.dumps(game, cls=GameEncoder)
+            # print("Game State JSON:")
+            # print(state_json)
+            # print("-" * 80)
+            
             state = game.state
             board = state.board
             prompt_lines = [self._system_prompt()]
+            # prompt_lines.append(str(state_json))
 
             prompt_lines.append(
                 f"You are a Catan player, your color is: {self.color.value}."

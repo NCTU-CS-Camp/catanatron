@@ -23,13 +23,13 @@ class LLMAgentClient:
         self.last_api_call = 0
         self.min_interval = 5  # 增加到5秒間隔以避免API限制
         
-        # 🔧 修复：添加缺失的属性初始化
+        # 修复：添加缺失的属性初始化
         self.action_count = 0  # 行动计数器
         self.current_turn = 0  # 回合追蹤
         self.previous_resources = {}  # 资源追踪
         self.debug_mode = False  # 调试模式
         
-        # 🔧 简化：删除详细的交易追蹤
+        # 简化：删除详细的交易追蹤
         self.trade_proposals_count = {}
         self.max_trade_proposals = 3
         
@@ -37,9 +37,9 @@ class LLMAgentClient:
         try:
             from catanatron.players.llm import LLMPlayer
             self.llm_player = LLMPlayer(color, model_name)
-            print(f"✅ Created LLM player for {color.value} using {model_name}")
+            print(f"Created LLM player for {color.value} using {model_name}")
         except Exception as e:
-            print(f"⚠️ Failed to create LLM player: {e}")
+            print(f"Failed to create LLM player: {e}")
             self.llm_player = None
 
     async def connect(self):
@@ -74,11 +74,11 @@ class LLMAgentClient:
         msg_type = data.get('type')
         
         if msg_type == 'welcome':
-            print(f"👋 Received welcome: {data.get('message')}")
+            print(f"Received welcome: {data.get('message')}")
             
         elif msg_type == 'game_started':
-            print(f"🎮 Game started!")
-            # 🆕 初始化资源追踪
+            print(f"Game started!")
+            # 初始化资源追踪
             await self.initialize_resource_tracking(data)
             
         elif msg_type == 'game_state_update':
@@ -90,7 +90,7 @@ class LLMAgentClient:
             # 🆕 检查资源变动
             await self.check_resource_changes(data)
             
-            # 🔧 檢測新回合並重置交易計數
+            # 檢測新回合並重置交易計數
             debug_info = data.get('debug_info', {})
             turn_number = debug_info.get('turn_number', 0)
             if turn_number > self.current_turn:
@@ -874,7 +874,7 @@ class LLMAgentClient:
         self.connected = False
 
     def record_trade_proposal(self, trade_value):
-        """🚫 删除：不再记录交易提议"""
+        """删除：不再记录交易提议"""
         pass  # 简化为空函数
         
     async def display_resource_changes_enhanced(self, previous, current):
