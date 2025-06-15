@@ -228,10 +228,34 @@ class GameEngineServer:
                     action = playable_actions[0]
                     logger.info(f"Auto-executing first action for {color.value}: {action}")
                 else:
+                    # 🆕 Handle new action index format - client sends string index
+                    if isinstance(action_data, str) and action_data.isdigit():
+                        # New format: client sends action index as string (e.g., "1")
+                        try:
+                            action_index = int(action_data)
+                            logger.info(f"Received action index: {action_index}")
+                            
+                            if 0 <= action_index < len(playable_actions):
+                                action = playable_actions[action_index]
+                                logger.info(f"Selected action by index {action_index}: {action}")
+                            else:
+                                logger.error(f"Invalid action index {action_index}. Available actions: 0-{len(playable_actions)-1}")
+                                await self.send_to_player(color, {
+                                    'type': 'error',
+                                    'message': f'Invalid action index {action_index}. Available actions: 0-{len(playable_actions)-1}'
+                                })
+                                return
+                        except ValueError as index_error:
+                            logger.error(f"Error parsing action index: {index_error}")
+                            await self.send_to_player(color, {
+                                'type': 'error',
+                                'message': f'Invalid action index format: {action_data}'
+                            })
+                            return
                     # 將 JSON 轉換為 Action 對象
                     # 檢查 action_data 的格式
-                    if isinstance(action_data, list) and len(action_data) == 3:
-                        # 新格式：["BLUE", "BUILD_SETTLEMENT", 0]
+                    elif isinstance(action_data, list) and len(action_data) == 3:
+                        # 舊格式：["BLUE", "BUILD_SETTLEMENT", 0]
                         try:
                             logger.info(f"Received action data: {action_data}")
                             action = action_from_json(action_data)
@@ -263,7 +287,7 @@ class GameEngineServer:
                         logger.error(f"Unknown action data format: {action_data} (type: {type(action_data)})")
                         await self.send_to_player(color, {
                             'type': 'error',
-                            'message': f'Unknown action format. Expected list or dict, got {type(action_data)}'
+                            'message': f'Unknown action format. Expected action index (string), list or dict, got {type(action_data)}'
                         })
                         return
                 
