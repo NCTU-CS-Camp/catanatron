@@ -5,15 +5,15 @@ $dark-divider: rgb(0 0 0 / 80%);
 .left-drawer {
   .MuiDrawer-paper {
     width: 280px;
-    background: #fcfcfc;
+    background: #edededcc;//#d3b7b7;
   }
 
   .MuiDivider-root {
-    background: $dark-divider;
+    background: None;//$dark-divider;
   }
 
   .MuiDrawer-paperAnchorDockedLeft {
-    border-color: $dark-divider;
+    border-color: None;//$dark-divider;
   }
 
   .log {
