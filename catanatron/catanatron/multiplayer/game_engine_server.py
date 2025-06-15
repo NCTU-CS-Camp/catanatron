@@ -3,6 +3,7 @@ import websockets
 from websockets.legacy.server import WebSocketServerProtocol
 import json
 import threading
+import time
 from typing import Dict, Optional, List
 from dataclasses import dataclass
 import logging
@@ -14,9 +15,15 @@ from catanatron.models.player import Color, Player
 from catanatron.models.actions import Action, generate_playable_actions
 from catanatron.json import GameEncoder, action_from_json
 
-# 設定日誌
-logging.basicConfig(level=logging.INFO)
+# 設定日誌，避免重複配置
 logger = logging.getLogger(__name__)
+
+# 確保只配置一次日誌
+root_logger = logging.getLogger()
+if not root_logger.handlers:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+logger.setLevel(logging.INFO)
 
 @dataclass
 class PlayerConnection:
@@ -48,6 +55,9 @@ class GameEngineServer:
         self.player_connections: Dict[Color, PlayerConnection] = {}
         self.game: Optional[Game] = None
         self.game_lock = asyncio.Lock()
+        
+        # 添加去重機制
+        self.last_action_hash = None
         
         # 所有可能的玩家顏色按順序
         self.available_colors = [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]
@@ -133,9 +143,28 @@ class GameEngineServer:
 
     async def handle_player_message(self, color: Color, message: str):
         """處理來自玩家的訊息"""
+        # 添加消息去重機制
+        import hashlib
+        message_hash = hashlib.md5(f"{color.value}_{message}_{time.time():.1f}".encode()).hexdigest()
+        
+        if not hasattr(self, 'processed_messages'):
+            self.processed_messages = set()
+        
+        if message_hash in self.processed_messages:
+            logger.debug(f"Duplicate message detected from {color.value}, skipping")
+            return
+            
+        self.processed_messages.add(message_hash)
+        
+        # 清理舊的消息哈希（保留最近100個）
+        if len(self.processed_messages) > 100:
+            self.processed_messages = set(list(self.processed_messages)[-50:])
+        
         try:
             data = json.loads(message)
             msg_type = data.get('type')
+            
+            logger.debug(f"Processing message from {color.value}: {msg_type}")
             
             if msg_type == 'action':
                 await self.handle_player_action(color, data.get('action'))

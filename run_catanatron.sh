@@ -122,7 +122,7 @@ sleep 2
 
 # 啟動遊戲伺服器 - 使用新的 start_server.py
 echo -e "\033[90m啟動遊戲伺服器...\033[0m"
-python start_server.py --min-players $MIN_PLAYERS --max-players $MAX_PLAYERS --wait-time $WAIT_TIME --no-cleanup 2>&1 | tee -a "$LOG_FILE" &
+python start_server.py --min-players $MIN_PLAYERS --max-players $MAX_PLAYERS --wait-time $WAIT_TIME --no-cleanup &
 SERVER_PID=$!
 
 # 等待伺服器啟動
@@ -150,7 +150,7 @@ for COLOR in "${COLORS[@]}"; do
     PORT=$(get_port_for_color $COLOR)
     echo -e "\033[90m啟動 $COLOR 玩家 (端口: $PORT)...\033[0m"
     cd catanatron/catanatron/multiplayer
-    uv run python llm_agent_client.py --port $PORT --color $COLOR --debug 2>&1 | tee -a "../../../$LOG_FILE" &
+    uv run python llm_agent_client.py --port $PORT --color $COLOR --debug &
     CLIENT_PID=$!
     cd ../../..
     CLIENT_PIDS+=($CLIENT_PID)
