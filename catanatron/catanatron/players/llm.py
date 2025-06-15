@@ -15,6 +15,7 @@ from catanatron.models.enums import (
     SETTLEMENT,
     CITY,
     ActionPrompt,
+    DEVELOPMENT_CARDS,
 )
 from catanatron.models.player import Player
 from catanatron.models.actions import (
@@ -205,27 +206,27 @@ class LLMPlayer(Player):
                         f"  Player {p_color.value} has {total_resources} total resources."
                     )
 
-                # # Development Cards
-                # dev_owned_strs = []
-                # dev_played_strs = []
-                # for dev_card in DevelopmentCard: # DevelopmentCard is the list of enums
-                #     dev_name = dev_card.value # e.g. "KNIGHT"
-                #     owned_count = sf.get_dev_cards_in_hand(state, p_color, dev_name)
-                #     if owned_count > 0:
-                #         dev_owned_strs.append(f"{dev_name}: {owned_count}")
-                #     played_count = sf.get_played_dev_cards(state, p_color, dev_name)
-                #     if played_count > 0:
-                #         dev_played_strs.append(f"{dev_name}: {played_count}")
-                # dev_owned_final_str = (
-                #     ', '.join(dev_owned_strs) if dev_owned_strs else 'None'
-                # )
-                # prompt_lines.append(f"  Dev Cards (In Hand): {dev_owned_final_str}")
-                # dev_played_final_str = (
-                #     ', '.join(dev_played_strs) if dev_played_strs else 'None'
-                # )
-                # prompt_lines.append(f"  Dev Cards (Played): {dev_played_final_str}")
-                # knights_played = sf.get_played_dev_cards(state, p_color, "KNIGHT")
-                # prompt_lines.append(f"  Knights Played (total): {knights_played}")
+                # Development Cards
+                dev_owned_strs = []
+                dev_played_strs = []
+                for dev_card in DEVELOPMENT_CARDS: # DevelopmentCard is the list of enums
+                    dev_name = dev_card.value # e.g. "KNIGHT"
+                    owned_count = sf.get_dev_cards_in_hand(state, p_color, dev_name)
+                    if owned_count > 0:
+                        dev_owned_strs.append(f"{dev_name}: {owned_count}")
+                    played_count = sf.get_played_dev_cards(state, p_color, dev_name)
+                    if played_count > 0:
+                        dev_played_strs.append(f"{dev_name}: {played_count}")
+                dev_owned_final_str = (
+                    ', '.join(dev_owned_strs) if dev_owned_strs else 'None'
+                )
+                prompt_lines.append(f"  Dev Cards (In Hand): {dev_owned_final_str}")
+                dev_played_final_str = (
+                    ', '.join(dev_played_strs) if dev_played_strs else 'None'
+                )
+                prompt_lines.append(f"  Dev Cards (Played): {dev_played_final_str}")
+                knights_played = sf.get_played_dev_cards(state, p_color, "KNIGHT")
+                prompt_lines.append(f"  Knights Played (total): {knights_played}")
 
                 # Victory Points
                 vps = sf.get_visible_victory_points(state, p_color)
