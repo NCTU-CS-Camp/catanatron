@@ -35,14 +35,21 @@ export function humanizeAction(gameState, action) {
       return `${player} 丢棄了資源`;
     case "BUY_DEVELOPMENT_CARD":
       return `${player} 購買了發展卡`;
-    case "BUILD_SETTLEMENT":
+    case "BUILD_SETTLEMENT":{
+      const parts = action[1].split("_");
+      const building = parts[parts.length - 1];
+      const tileId = action[2];
+      const tiles = gameState.adjacent_tiles[tileId];
+      const tileString = tiles.map(getShortTileString).join("-");
+      return `${player} 在 ${tileString} 建造了村莊`;
+    }
     case "BUILD_CITY": {
       const parts = action[1].split("_");
       const building = parts[parts.length - 1];
       const tileId = action[2];
       const tiles = gameState.adjacent_tiles[tileId];
       const tileString = tiles.map(getShortTileString).join("-");
-      return `${player} 在 ${tileString} 建造了 ${building}`;
+      return `${player} 在 ${tileString} 建造了城市`;
     }
     case "BUILD_ROAD": {
       const edge = action[2];
@@ -115,7 +122,7 @@ export default function Prompt({ gameState, isBotThinking }) {
   if (isBotThinking) {
     // Do nothing, but still render.
   } else if (gameState.winning_color) {
-    prompt = `Game Over. Congrats, ${gameState.winning_color}!`;
+    prompt = `遊戲結束 恭喜, ${gameState.winning_color}!`;
   } else if (isPlayersTurn(gameState)) {
     prompt = humanizePrompt(gameState.current_prompt);
   } else {

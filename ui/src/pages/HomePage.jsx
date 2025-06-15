@@ -50,10 +50,6 @@ export default function HomePage() {
       <div className="switchable">
         {!loading ? (
           <>
-            <ul>
-              <li>OPEN HAND</li>
-              <li>NO CHOICE DURING DISCARD</li>
-            </ul>
             <div className="player-count-selector">
               <div className="player-count-label">Number of Players</div>
               <div className="player-count-buttons">

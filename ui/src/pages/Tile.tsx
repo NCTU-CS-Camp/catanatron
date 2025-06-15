@@ -5,10 +5,10 @@ import "./Tile.scss";
 import brickTile from "../assets/brick.svg";
 import desertTile from "../assets/desert.svg";
 import grainTile from "../assets/wheat.svg";
-import lumberTile from "../assets/tile_wood.svg";
-import oreTile from "../assets/tile_ore.svg";
+import lumberTile from "../assets/wood.svg";
+import oreTile from "../assets/ore.svg";
 import woolTile from "../assets/sheep.svg";
-import maritimeTile from "../assets/tile_maritime.svg";
+import maritimeTile from "../assets/maritime.svg";
 import { SQRT3, tilePixelVector, type Direction } from "../utils/coordinates";
 
 type NumberTokenProps = {

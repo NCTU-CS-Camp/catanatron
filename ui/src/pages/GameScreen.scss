@@ -48,12 +48,29 @@ main {
     text-align: center;
   }
 
-  background: #3498db;
-  color: white;
+  position: relative;
+  background-image: url('src/homepage.png');
+  background-size: cover;
+  background-position: center;
+  color: #0f0e0eb0;
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.25);
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+  
   .loader {
     display: flex;
     justify-content: center;
