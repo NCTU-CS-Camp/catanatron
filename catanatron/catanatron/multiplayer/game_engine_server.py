@@ -516,6 +516,9 @@ class GameEngineServer:
                                     action_value[j] = item.name
                                 elif item is None:
                                     action_value[j] = None
+                                else:
+                                    # 保持原值，不嘗試訪問 .value
+                                    action_value[j] = item
                         except Exception:
                             # 如果轉換失敗，使用字符串表示
                             action_value = str(action_value)

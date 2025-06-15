@@ -209,8 +209,8 @@ class LLMPlayer(Player):
                 # Development Cards
                 dev_owned_strs = []
                 dev_played_strs = []
-                for dev_card in DEVELOPMENT_CARDS: # DevelopmentCard is the list of enums
-                    dev_name = dev_card.value # e.g. "KNIGHT"
+                for dev_card in DEVELOPMENT_CARDS: # DevelopmentCard is the list of strings
+                    dev_name = dev_card # e.g. "KNIGHT"
                     owned_count = sf.get_dev_cards_in_hand(state, p_color, dev_name)
                     if owned_count > 0:
                         dev_owned_strs.append(f"{dev_name}: {owned_count}")
@@ -270,13 +270,21 @@ class LLMPlayer(Player):
             # # --- Global Game Status ---
             prompt_lines.append("\n--- GLOBAL GAME STATUS ---")
             longest_road_holder_color = sf.get_longest_road_color(state)
-            road_holder_str = longest_road_holder_color.value if longest_road_holder_color else 'None'
+            try:
+                road_holder_str = longest_road_holder_color.value if longest_road_holder_color else 'None'
+            except AttributeError as e:
+                print(f"Error accessing longest_road_holder_color.value: {e}, type: {type(longest_road_holder_color)}, value: {longest_road_holder_color}")
+                road_holder_str = str(longest_road_holder_color) if longest_road_holder_color else 'None'
             prompt_lines.append(
                 f"Longest Road: Held by {road_holder_str}, "
                 f"Length: {board.road_length}" # board.road_length is global
             )
             largest_army_color, largest_army_val = sf.get_largest_army(state)
-            army_holder_str = largest_army_color.value if largest_army_color else 'None'
+            try:
+                army_holder_str = largest_army_color.value if largest_army_color else 'None'
+            except AttributeError as e:
+                print(f"Error accessing largest_army_color.value: {e}, type: {type(largest_army_color)}, value: {largest_army_color}")
+                army_holder_str = str(largest_army_color) if largest_army_color else 'None'
             part1 = f"Largest Army: Held by {army_holder_str}, "
             size_value_as_string = f"{largest_army_val or 0}"
             part2 = "Size: " + size_value_as_string
@@ -350,7 +358,6 @@ class LLMPlayer(Player):
                     val_str = str(action.value)
                     if action.action_type == ActionType.OFFER_TRADE and \
                        action.value and len(action.value) >= 10:
-                        assert False, action.value
                         off_res = [
                             ALL_RESOURCES_ENUM[j] for j, count
                             in enumerate(action.value[:5]) if count > 0
@@ -408,7 +415,7 @@ class LLMPlayer(Player):
                         rec_res_idx = action.value[1]
                         val_str = f"Give {ALL_RESOURCES_ENUM[give_res_idx]}, Receive {ALL_RESOURCES_ENUM[rec_res_idx]}"
                     elif action.action_type == ActionType.MOVE_ROBBER and \
-                         action.value and len(action.value) == 2:
+                         action.value and len(action.value) >= 2:
                         tile_c = action.value[0]
                         victim = action.value[1]
                         if victim is None:
@@ -515,7 +522,12 @@ class LLMPlayer(Player):
             elif action.action_type.name == "BUY_DEVELOPMENT_CARD":
                 return "Buy Development Card"
             elif action.action_type.name == "MOVE_ROBBER":
-                coord, victim, _ = action.value
+                if len(action.value) >= 3:
+                    coord, victim, _ = action.value
+                elif len(action.value) >= 2:
+                    coord, victim = action.value[0], action.value[1]
+                else:
+                    coord, victim = action.value[0], None
                 if victim is None:
                     victim_str = "No one"
                 elif hasattr(victim, 'value'):
