@@ -7,6 +7,7 @@ from typing import Dict, Optional, List
 from dataclasses import dataclass
 import logging
 import traceback
+import argparse
 
 from catanatron.game import Game
 from catanatron.models.player import Color, Player
@@ -39,23 +40,29 @@ class NetworkPlayer(Player):
         return playable_actions[0] if playable_actions else None
 
 class GameEngineServer:
-    def __init__(self, host: str = "0.0.0.0"):
+    def __init__(self, host: str = "0.0.0.0", min_players: int = 2, max_players: int = 4):
         self.host = host
         self.base_port = 8001
+        self.min_players = min_players  # 最少玩家數量，預設 2
+        self.max_players = max_players  # 最多玩家數量，預設 4
         self.player_connections: Dict[Color, PlayerConnection] = {}
         self.game: Optional[Game] = None
         self.game_lock = asyncio.Lock()
         
-        # 定義玩家顏色對應的端口
-        self.port_color_mapping = {
-            8001: Color.RED,
-            8002: Color.BLUE, 
-            8003: Color.WHITE,
-            8004: Color.ORANGE
-        }
+        # 所有可能的玩家顏色按順序
+        self.available_colors = [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]
+        
+        # 根據最大玩家數量設定端口映射
+        self.port_color_mapping = {}
+        for i in range(min(max_players, len(self.available_colors))):
+            self.port_color_mapping[8001 + i] = self.available_colors[i]
         
         # 為每個端口創建服務器
         self.servers: Dict[int, websockets.WebSocketServer] = {}
+        
+        # 遊戲開始計時器
+        self.start_game_timer = None
+        self.waiting_time = 30  # 等待 30 秒後自動開始（如果達到最少玩家數）
         
     async def start_all_servers(self):
         """啟動所有端口的 WebSocket 服務器"""
@@ -288,9 +295,62 @@ class GameEngineServer:
             if conn.connected
         ]
         
-        if len(connected_players) == 4:
-            logger.info("All 4 players connected! Starting game...")
+        connected_count = len(connected_players)
+        
+        if connected_count >= self.max_players:
+            # 達到最大玩家數，立即開始遊戲
+            logger.info(f"Maximum {self.max_players} players connected! Starting game immediately...")
+            if self.start_game_timer:
+                self.start_game_timer.cancel()
+                self.start_game_timer = None
             await self.start_game()
+        elif connected_count >= self.min_players:
+            # 達到最少玩家數，開始倒數計時
+            if not self.start_game_timer:
+                logger.info(f"{connected_count} players connected (min: {self.min_players}, max: {self.max_players})")
+                logger.info(f"Game will start in {self.waiting_time} seconds, or when max players join...")
+                
+                # 廣播等待訊息給所有玩家
+                await self.broadcast_to_all({
+                    'type': 'waiting_for_players',
+                    'message': f'Waiting for more players... Game will start in {self.waiting_time} seconds',
+                    'current_players': connected_count,
+                    'min_players': self.min_players,
+                    'max_players': self.max_players,
+                    'countdown': self.waiting_time
+                })
+                
+                # 設定計時器
+                self.start_game_timer = asyncio.create_task(self._start_game_after_delay())
+        else:
+            # 玩家數量不足
+            logger.info(f"Only {connected_count} players connected. Need at least {self.min_players} players.")
+            await self.broadcast_to_all({
+                'type': 'waiting_for_players',
+                'message': f'Waiting for players... ({connected_count}/{self.min_players} minimum)',
+                'current_players': connected_count,
+                'min_players': self.min_players,
+                'max_players': self.max_players
+            })
+
+    async def _start_game_after_delay(self):
+        """延遲後開始遊戲"""
+        try:
+            await asyncio.sleep(self.waiting_time)
+            connected_count = len([
+                conn for conn in self.player_connections.values() 
+                if conn.connected
+            ])
+            
+            if connected_count >= self.min_players:
+                logger.info(f"Starting game with {connected_count} players after waiting period...")
+                await self.start_game()
+            else:
+                logger.info(f"Not enough players to start game ({connected_count}/{self.min_players})")
+        except asyncio.CancelledError:
+            logger.info("Game start timer cancelled")
+        finally:
+            self.start_game_timer = None
 
     async def start_game(self):
         """開始遊戲"""
@@ -299,13 +359,24 @@ class GameEngineServer:
                 return  # 遊戲已經開始
             
             try:
-                # 創建網路代理玩家，確保使用正確的順序
-                players = [
-                    NetworkPlayer(Color.RED),
-                    NetworkPlayer(Color.BLUE),
-                    NetworkPlayer(Color.WHITE),
-                    NetworkPlayer(Color.ORANGE)
+                # 取得實際連接的玩家
+                connected_players = [
+                    conn for conn in self.player_connections.values() 
+                    if conn.connected
                 ]
+                
+                if len(connected_players) < self.min_players:
+                    logger.error(f"Not enough players to start game: {len(connected_players)}/{self.min_players}")
+                    return
+                
+                # 根據連接的玩家創建對應顏色的 NetworkPlayer
+                players = []
+                for conn in connected_players:
+                    players.append(NetworkPlayer(conn.color))
+                
+                # 按照顏色順序排序玩家（確保遊戲順序一致）
+                color_order = [Color.RED, Color.BLUE, Color.WHITE, Color.ORANGE]
+                players.sort(key=lambda p: color_order.index(p.color))
                 
                 logger.info(f"Creating game with {len(players)} players")
                 for p in players:
@@ -365,12 +436,13 @@ class GameEngineServer:
                 traceback.print_exc()
                 return
             
-            logger.info("Game started!")
+            logger.info(f"Game started with {len(self.game.state.players)} players!")
             
             # 廣播遊戲開始
             await self.broadcast_to_all({
                 'type': 'game_started',
-                'message': 'Game has started!',
+                'message': f'Game has started with {len(self.game.state.players)} players!',
+                'player_count': len(self.game.state.players),
                 'debug_info': {
                     'current_player': self.game.state.current_color().value,
                     'current_prompt': str(self.game.state.current_prompt),
@@ -543,8 +615,74 @@ class GameEngineServer:
 
 # 啟動服務器
 async def main():
-    server = GameEngineServer(host="0.0.0.0")
-    await server.start_all_servers()
+    """主函數，支援命令列參數設定玩家數量"""
+    parser = argparse.ArgumentParser(description='Catanatron 多人遊戲伺服器')
+    parser.add_argument('--min-players', type=int, default=2, 
+                       help='最少玩家數量 (預設: 2)')
+    parser.add_argument('--max-players', type=int, default=4, 
+                       help='最多玩家數量 (預設: 4)')
+    parser.add_argument('--wait-time', type=int, default=30,
+                       help='達到最少玩家數後等待時間(秒) (預設: 30)')
+    parser.add_argument('--host', type=str, default="0.0.0.0",
+                       help='伺服器主機地址 (預設: 0.0.0.0)')
+    
+    args = parser.parse_args()
+    
+    # 驗證參數
+    if args.min_players < 2:
+        print("錯誤：最少玩家數量必須至少為 2")
+        return
+    if args.max_players > 4:
+        print("錯誤：最多玩家數量不能超過 4 (顏色限制)")
+        return
+    if args.min_players > args.max_players:
+        print("錯誤：最少玩家數量不能大於最多玩家數量")
+        return
+    
+    print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║                    Catanatron 多人遊戲伺服器                    ║
+╠══════════════════════════════════════════════════════════════╣
+║  設定:                                                        ║
+║    最少玩家數量: {args.min_players:<2}                                           ║
+║    最多玩家數量: {args.max_players:<2}                                           ║
+║    等待時間: {args.wait_time:<3} 秒                                        ║
+║    主機地址: {args.host:<15}                                    ║
+╚══════════════════════════════════════════════════════════════╝
+    """)
+    
+    server = GameEngineServer(
+        host=args.host,
+        min_players=args.min_players, 
+        max_players=args.max_players
+    )
+    
+    # 設定等待時間
+    server.waiting_time = args.wait_time
+    
+    print("正在啟動伺服器...")
+    print(f"玩家可以連接到以下端口:")
+    
+    colors = ["RED", "BLUE", "WHITE", "ORANGE"]
+    for i in range(args.max_players):
+        port = 8001 + i
+        color = colors[i]
+        print(f"  端口 {port}: {color} 玩家")
+    
+    print(f"\n遊戲規則:")
+    print(f"  - 至少需要 {args.min_players} 個玩家才能開始遊戲")
+    print(f"  - 最多支援 {args.max_players} 個玩家")
+    print(f"  - 達到最少玩家數後，等待 {args.wait_time} 秒或直到滿員")
+    print(f"  - 玩家可以隨時加入，直到達到最大數量\n")
+    
+    try:
+        await server.start_all_servers()
+    except KeyboardInterrupt:
+        print("\n正在關閉伺服器...")
+        for server_instance in server.servers.values():
+            server_instance.close()
+            await server_instance.wait_closed()
+        print("伺服器已關閉")
 
 if __name__ == "__main__":
     try:
