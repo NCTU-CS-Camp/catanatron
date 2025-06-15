@@ -21,7 +21,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: Dockerfile.web
+      dockerfile: Dockerfile.uv
     environment:
       - DATABASE_URL=postgresql://catanatron:victorypoint@db:5432/catanatron_db
       - PYTHONUNBUFFERED=1
