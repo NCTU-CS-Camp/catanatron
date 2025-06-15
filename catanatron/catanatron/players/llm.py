@@ -11,7 +11,8 @@ load_dotenv()
 # For type hinting
 from catanatron.models.enums import (
     Color,
-    Resource as ALL_RESOURCES_ENUM,  # Added for use in _format_game_state_for_llm
+    Resource,
+    RESOURCES,  # Use the list instead of the enum for indexing
     SETTLEMENT,
     CITY,
     ActionPrompt,
@@ -196,7 +197,7 @@ class LLMPlayer(Player):
                 if is_self:
                     player_resource_counts = sf.get_player_freqdeck(state, p_color)
                     res_counts_strs = []
-                    for i, res_name_str in enumerate(ALL_RESOURCES_ENUM):
+                    for i, res_name_str in enumerate(RESOURCES):
                         res_counts_strs.append(f"{res_name_str}: {player_resource_counts[i]}")
                     resources_str = ', '.join(res_counts_strs)
                     print(f"You have resources: {resources_str}")
@@ -319,12 +320,12 @@ class LLMPlayer(Player):
             if state.is_resolving_trade:
                 prompt_lines.append("\nTrade Resolution Active:")
                 offered_list = [
-                    ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
+                    RESOURCES[j] # Use string from RESOURCES list
                     for j, count in enumerate(state.current_trade[:5])
                     if count > 0 for _ in range(count)
                 ]
                 asking_list = [
-                    ALL_RESOURCES_ENUM[j] # Use string from ALL_RESOURCES_ENUM
+                    RESOURCES[j] # Use string from RESOURCES list
                     for j, count in enumerate(state.current_trade[5:10])
                     if count > 0 for _ in range(count)
                 ]
@@ -359,12 +360,12 @@ class LLMPlayer(Player):
                     if action.action_type == ActionType.OFFER_TRADE and \
                        action.value and len(action.value) >= 10:
                         off_res = [
-                            ALL_RESOURCES_ENUM[j] for j, count
+                            RESOURCES[j] for j, count
                             in enumerate(action.value[:5]) if count > 0
                             for _ in range(count)
                         ]
                         ask_res = [
-                            ALL_RESOURCES_ENUM[j] for j, count
+                            RESOURCES[j] for j, count
                             in enumerate(action.value[5:10]) if count > 0
                             for _ in range(count)
                         ]
@@ -377,12 +378,12 @@ class LLMPlayer(Player):
                         ActionType.CONFIRM_TRADE
                     ] and action.value and len(action.value) >= 10:
                         off_res = [
-                            ALL_RESOURCES_ENUM[j] for j, count
+                            RESOURCES[j] for j, count
                             in enumerate(action.value[:5]) if count > 0
                             for _ in range(count)
                         ]
                         ask_res = [
-                            ALL_RESOURCES_ENUM[j] for j, count
+                            RESOURCES[j] for j, count
                             in enumerate(action.value[5:10]) if count > 0
                             for _ in range(count)
                         ]
@@ -413,7 +414,7 @@ class LLMPlayer(Player):
                          action.value and len(action.value) == 2:
                         give_res_idx = action.value[0]
                         rec_res_idx = action.value[1]
-                        val_str = f"Give {ALL_RESOURCES_ENUM[give_res_idx]}, Receive {ALL_RESOURCES_ENUM[rec_res_idx]}"
+                        val_str = f"Give {RESOURCES[give_res_idx]}, Receive {RESOURCES[rec_res_idx]}"
                     elif action.action_type == ActionType.MOVE_ROBBER and \
                          action.value and len(action.value) >= 2:
                         tile_c = action.value[0]
