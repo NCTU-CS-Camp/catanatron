@@ -59,7 +59,7 @@ def generate_playable_actions(state):
 
         if not player_has_rolled(state, color):
             actions.append(Action(color, ActionType.ROLL, None))
-            # return actions  # must roll first
+            return actions  # must roll first
 
         # Build city (over existing settlement)
         settlements = get_player_buildings(state, color, SETTLEMENT)
