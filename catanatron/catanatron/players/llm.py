@@ -410,10 +410,13 @@ class LLMPlayer(Player):
                     elif action.action_type == ActionType.MOVE_ROBBER and \
                          action.value and len(action.value) == 2:
                         tile_c = action.value[0]
-                        victim_c = (
-                            action.value[1].value if action.value[1]
-                            else "No one / Self"
-                        )
+                        victim = action.value[1]
+                        if victim is None:
+                            victim_c = "No one / Self"
+                        elif hasattr(victim, 'value'):
+                            victim_c = victim.value
+                        else:
+                            victim_c = str(victim)
                         val_str = (
                             f"Move robber to tile {tile_c}, Steal from: {victim_c}"
                         )
@@ -513,7 +516,12 @@ class LLMPlayer(Player):
                 return "Buy Development Card"
             elif action.action_type.name == "MOVE_ROBBER":
                 coord, victim, _ = action.value
-                victim_str = victim.value if victim else "No one"
+                if victim is None:
+                    victim_str = "No one"
+                elif hasattr(victim, 'value'):
+                    victim_str = victim.value
+                else:
+                    victim_str = str(victim)
                 return f"Move Robber to {coord}, steal from {victim_str}"
             elif action.action_type.name == "MARITIME_TRADE":
                 return f"Maritime Trade: {action.value}"
