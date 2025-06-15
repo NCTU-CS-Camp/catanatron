@@ -155,22 +155,22 @@ function PlayButtons() {
   }, [dispatch]);
   const buildItems = [
     {
-      label: "Development Card",
+      label: "購買發展卡",
       disabled: !buildActionTypes.has("BUY_DEVELOPMENT_CARD"),
       onClick: buyDevCard,
     },
     {
-      label: "City",
+      label: "建造城市",
       disabled: !buildActionTypes.has("BUILD_CITY"),
       onClick: setIsBuildingCity,
     },
     {
-      label: "Settlement",
+      label: "建造村莊",
       disabled: !buildActionTypes.has("BUILD_SETTLEMENT"),
       onClick: setIsBuildingSettlement,
     },
     {
-      label: "Road",
+      label: "建造道路",
       disabled: !buildActionTypes.has("BUILD_ROAD"),
       onClick: toggleBuildingRoad,
     },
@@ -206,7 +206,7 @@ function PlayButtons() {
         icon={<SimCardIcon />}
         items={useItems}
       >
-        Use
+        使用
       </OptionsButton>
       <OptionsButton
         disabled={buildActionTypes.size === 0 || isPlayingDevCard}
@@ -214,7 +214,7 @@ function PlayButtons() {
         icon={<BuildIcon />}
         items={buildItems}
       >
-        Buy
+        買卡/建設
       </OptionsButton>
       <OptionsButton
         disabled={tradeItems.length === 0 || isPlayingDevCard}
@@ -222,7 +222,7 @@ function PlayButtons() {
         icon={<AccountBalanceIcon />}
         items={tradeItems}
       >
-        Trade
+        交易
       </OptionsButton>
       <Button
         disabled={gameState.is_initial_build_phase || isRoadBuilding}
@@ -242,11 +242,11 @@ function PlayButtons() {
         }
       >
         {
-          isDiscard ? "DISCARD" :
-          isMoveRobber ? "ROB" :
-          isPlayingYearOfPlenty || isPlayingMonopoly ? "SELECT" :
-          isRoll ? "ROLL" :
-          "END"
+          isDiscard ? "丟棄資源" :
+          isMoveRobber ? "偷東西囉" :
+          isPlayingYearOfPlenty || isPlayingMonopoly ? "選擇資源" :
+          isRoll ? "擲骰子" :
+          "結束回合"
         }
       </Button>
       <ResourceSelector

@@ -85,7 +85,7 @@ function GameScreen({ replayMode }) {
 
   return (
     <main>
-      <h1 className="logo">Catanatron</h1>
+      <h1 className="logo">卡坦島</h1>
       <ZoomableBoard replayMode={replayMode} />
       <ActionsToolbar isBotThinking={isBotThinking} replayMode={replayMode} />
       <LeftDrawer />

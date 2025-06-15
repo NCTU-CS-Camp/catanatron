@@ -1,7 +1,7 @@
 @use "../variables.scss";
 
 .resource-cards {
-  height: 40px;
+  height: 50px;
   display: flex;
   gap: 6px;
 
@@ -9,12 +9,14 @@
 
   .card {
     border-radius: 4px;
+    width: 40px; // 21px
+    height: 50px; // 36px
     div {
-      background: #151313;
-      color: white;
+      background: transparent; // 背景透明
+      color: black; // 字體顏色
 
-      width: 21px;
-      height: 36px;
+      width: 40px; // 21px
+      height: 50px; // 36px
 
       display: flex;
       flex-direction: column;
@@ -26,19 +28,29 @@
     }
   }
   .wood-cards {
-    background: variables.$wood;
+    background-image: url('card/wood.png'); //調整圖片路徑
+    background-size: cover;
+    background-position: center;
   }
   .brick-cards {
-    background: variables.$brick;
+    background-image: url('card/brick.jpg'); //調整圖片路徑
+    background-size: cover;
+    background-position: center;
   }
   .wheat-cards {
-    background: variables.$wheat;
+    background-image: url('card/wheat.svg'); //調整圖片路徑
+    background-size: cover;
+    background-position: center;
   }
   .sheep-cards {
-    background: variables.$darker-sheep;
+    background-image: url('card/sheep.jpg'); //調整圖片路徑
+    background-size: cover;
+    background-position: center;
   }
   .ore-cards {
-    background: variables.$ore;
+    background-image: url('card/ore.jpg'); //調整圖片路徑
+    background-size: cover;
+    background-position: center;
   }
   .dev-cards {
     background: purple;
