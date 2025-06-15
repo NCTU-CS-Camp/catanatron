@@ -53,4 +53,9 @@ $btn-height: 60px;
       margin: 0;
     }
   }
+  
+  .MuiList-root {
+    position: relative;
+    z-index: 2000 !important;
+  }
 }

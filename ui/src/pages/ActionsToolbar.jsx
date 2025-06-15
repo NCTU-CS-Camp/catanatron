@@ -201,6 +201,7 @@ function PlayButtons() {
   return (
     <>
       <OptionsButton
+        className="play-dev-card-btn"
         disabled={playableDevCardTypes.size === 0 || isPlayingDevCard}
         menuListId="use-menu-list"
         icon={<SimCardIcon />}
@@ -209,6 +210,7 @@ function PlayButtons() {
         使用
       </OptionsButton>
       <OptionsButton
+        className="build-btn"
         disabled={buildActionTypes.size === 0 || isPlayingDevCard}
         menuListId="build-menu-list"
         icon={<BuildIcon />}
@@ -217,6 +219,7 @@ function PlayButtons() {
         買卡/建設
       </OptionsButton>
       <OptionsButton
+        className="trade-btn"
         disabled={tradeItems.length === 0 || isPlayingDevCard}
         menuListId="trade-menu-list"
         icon={<AccountBalanceIcon />}
