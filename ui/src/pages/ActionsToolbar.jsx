@@ -107,22 +107,22 @@ function PlayButtons() {
   }, [gameId, dispatch, enqueueSnackbar, closeSnackbar, humanColor]);
   const useItems = [
     {
-      label: "Monopoly",
+      label: "壟斷卡",
       disabled: !playableDevCardTypes.has("PLAY_MONOPOLY"),
       onClick: setIsPlayingMonopoly,
     },
     {
-      label: "Year of Plenty",
+      label: "豐饒之年卡",
       disabled: !playableDevCardTypes.has("PLAY_YEAR_OF_PLENTY"),
       onClick: setIsPlayingYearOfPlenty,
     },
     {
-      label: "Road Building",
+      label: "道路建設卡",
       disabled: !playableDevCardTypes.has("PLAY_ROAD_BUILDING"),
       onClick: playRoadBuilding,
     },
     {
-      label: "Knight",
+      label: "騎士卡",
       disabled: !playableDevCardTypes.has("PLAY_KNIGHT_CARD"),
       onClick: playKnightCard,
     },
