@@ -50,7 +50,7 @@ def database_session():
     """
     database_url = os.environ.get(
         "DATABASE_URL",
-        "postgresql://catanatron:victorypoint@127.0.0.1:5432/catanatron_db",
+        "postgresql://catanatron:victorypoint@db:5432/catanatron_db",
     )
     engine = create_engine(database_url)
     session = Session(engine)

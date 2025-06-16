@@ -14,6 +14,17 @@ import argparse
 from aiohttp import web
 import aiohttp_cors
 
+# 添加資料庫同步功能
+import os
+import sys
+sys.path.append('/app')
+try:
+    from catanatron.web.models import database_session, GameState, upsert_game_state
+    DATABASE_SYNC_ENABLED = True
+except ImportError as e:
+    print(f"Warning: Cannot import database models: {e}")
+    DATABASE_SYNC_ENABLED = False
+
 from catanatron.game import Game
 from catanatron.models.player import Color, Player
 from catanatron.models.actions import Action, generate_playable_actions
@@ -82,6 +93,36 @@ class GameEngineServer:
         self.http_server = None
         self.status_port = 8100  # HTTP 狀態 API 端口
         
+        # 資料庫同步設定
+        self.database_sync_enabled = DATABASE_SYNC_ENABLED
+        self.websocket_game_id = "websocket_multiplayer_game"  # 固定的遊戲 ID
+
+    async def sync_game_to_database(self):
+        """將 WebSocket 遊戲狀態同步到資料庫"""
+        if not self.database_sync_enabled or not self.game:
+            return
+            
+        try:
+            # 為 WebSocket 遊戲設定固定的 ID
+            original_id = self.game.id
+            self.game.id = self.websocket_game_id
+            
+            # 使用資料庫會話
+            with database_session() as session:
+                # 創建遊戲狀態記錄
+                game_state = GameState.from_game(self.game)
+                session.add(game_state)
+                session.commit()
+                
+                logger.info(f"Synced WebSocket game state to database: turn {self.game.state.num_turns}")
+            
+            # 恢復原始 ID
+            self.game.id = original_id
+            
+        except Exception as e:
+            logger.error(f"Failed to sync game state to database: {e}")
+            # 不影響遊戲繼續進行
+
     async def start_all_servers(self):
         """啟動所有端口的 WebSocket 服務器和 HTTP 狀態 API"""
         tasks = []
@@ -461,6 +502,9 @@ class GameEngineServer:
                 
                 logger.info("Game created successfully!")
                 
+                # 同步初始遊戲狀態到資料庫
+                await self.sync_game_to_database()
+                
                 # 檢查初始遊戲狀態 - 使用正確的屬性
                 current_color = self.game.state.current_color()
                 playable_actions = self.game.state.playable_actions  # 使用正確的屬性
@@ -632,6 +676,9 @@ class GameEngineServer:
             return
             
         try:
+            # 同步遊戲狀態到資料庫
+            await self.sync_game_to_database()
+            
             game_state_json = json.dumps(self.game, cls=GameEncoder)
             message = {
                 'type': 'game_state_update',
@@ -779,6 +826,50 @@ class GameEngineServer:
                 "message": str(e)
             }, status=500)
     
+    async def handle_game_state_request(self, request):
+        """處理完整遊戲狀態請求"""
+        try:
+            if not self.game:
+                return web.json_response({
+                    "error": "No active game",
+                    "message": "WebSocket game has not started"
+                }, status=404)
+            
+            # 使用 GameEncoder 序列化完整的遊戲狀態
+            game_state_json = json.dumps(self.game, cls=GameEncoder)
+            game_state = json.loads(game_state_json)
+            
+            # 添加 WebSocket 特有的資訊
+            response_data = {
+                "game_id": self.websocket_game_id,
+                "type": "websocket_multiplayer",
+                "game_state": game_state,
+                "websocket_info": {
+                    "connected_players": len([
+                        conn for conn in self.player_connections.values() 
+                        if conn.connected
+                    ]),
+                    "player_connections": {
+                        color.value: {
+                            "connected": conn.connected if conn else False,
+                            "port": self.get_port_by_color(color)
+                        }
+                        for color, conn in self.player_connections.items()
+                    }
+                },
+                "last_updated": time.time()
+            }
+            
+            return web.json_response(response_data)
+            
+        except Exception as e:
+            logger.error(f"Error generating game state response: {e}")
+            traceback.print_exc()
+            return web.json_response({
+                "error": "Internal server error",
+                "message": str(e)
+            }, status=500)
+
     async def start_http_server(self):
         """啟動 HTTP 狀態 API 服務器"""
         app = web.Application()
@@ -795,6 +886,7 @@ class GameEngineServer:
         
         # 添加路由
         status_resource = cors.add(app.router.add_get('/status', self.handle_status_request))
+        game_state_resource = cors.add(app.router.add_get('/game-state', self.handle_game_state_request))
         
         # 啟動 HTTP 服務器
         runner = web.AppRunner(app)
@@ -804,6 +896,7 @@ class GameEngineServer:
         
         self.http_server = runner
         logger.info(f"HTTP Status API started on http://{self.host}:{self.status_port}/status")
+        logger.info(f"HTTP Game State API started on http://{self.host}:{self.status_port}/game-state")
         
         return runner
 
