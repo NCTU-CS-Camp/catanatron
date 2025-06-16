@@ -588,9 +588,9 @@ class LLMPlayer(Player):
             )
             return None 
 
-        if len(playable_actions) == 1:
-            # print(f"LLM {self.color.value}: Single action: {playable_actions[0]}")
-            return playable_actions[0]
+        # if len(playable_actions) == 1:
+        #     # print(f"LLM {self.color.value}: Single action: {playable_actions[0]}")
+        #     return playable_actions[0]
 
         prompt = self._format_game_state_for_llm(game, playable_actions)
         

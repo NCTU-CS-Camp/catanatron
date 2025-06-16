@@ -322,23 +322,19 @@ class LLMAgentClient:
             try:
                 print("\n\033[94mMaking LLM decision...\033[0m")
                 chosen_index = await self.make_llm_decision(filtered_actions, data)
+                # chosen_index = self.llm_player.decide(game, playable_actions)
                 
                 if chosen_index is not None and 0 <= chosen_index < len(filtered_actions):
                     original_index, chosen_action = filtered_actions[chosen_index]
                     action_type = chosen_action.get('action_type')
                     print(f"\033[92mChosen action #{chosen_index}: {action_type}\033[0m")
                     
-                    # Prepare and send action
-                    action_message = await self.prepare_action_message(chosen_action)
-                    if action_message:
-                        print(f"\033[95mSending action: {chosen_action.get('description', 'No description')}\033[0m")
-                        await self.send_message({
-                            'type': 'action',
-                            'action': action_message
-                        })
-                    else:
-                        print("\033[91mFailed to prepare action message\033[0m")
-                        await self.send_fallback_action(filtered_actions, playable_actions_data)
+                    # 🆕 Send just the original action index as string instead of full action details
+                    print(f"\033[95mSending action index: {original_index}\033[0m")
+                    await self.send_message({
+                        'type': 'action',
+                        'action': str(original_index)  # Send only the action index as string
+                    })
                 else:
                     print("\033[93mInvalid action index, using fallback\033[0m")
                     await self.send_fallback_action(filtered_actions, playable_actions_data)
@@ -708,12 +704,12 @@ class LLMAgentClient:
         if filtered_actions:
             # 选择第一个可用行动
             original_index, fallback_action = filtered_actions[0]
-            print(f"\033[96mSending fallback action: {fallback_action.get('description')}\033[0m")
+            print(f"\033[96mSending fallback action index: {original_index}\033[0m")
             
-            action_message = await self.prepare_action_message(fallback_action)
+            # 🆕 Send just the action index instead of full action details
             await self.send_message({
                 'type': 'action',
-                'action': action_message
+                'action': str(original_index)  # Send only the action index as string
             })
         else:
             # 发送空行动
