@@ -2,11 +2,15 @@ import json
 import logging
 import traceback
 from typing import List
+import requests
+import asyncio
+import websockets
+import time
 
 from flask import Response, Blueprint, jsonify, abort, request
 
 from catanatron.web.models import upsert_game_state, get_game_state
-from catanatron.catanatron_json import GameEncoder, action_from_json
+from catanatron.json import GameEncoder, action_from_json
 from catanatron.models.player import Color, Player, RandomPlayer
 from catanatron.game import Game
 from catanatron.players.value import ValueFunctionPlayer
@@ -15,6 +19,17 @@ from catanatron.players.llm import LLMPlayer
 from catanatron.web.mcts_analysis import GameAnalyzer
 
 bp = Blueprint("api", __name__, url_prefix="/api")
+
+# WebSocket connection status tracking - simplified for port 8100 status
+WEBSOCKET_PORTS = {
+    8001: "RED",
+    8002: "BLUE", 
+    8003: "WHITE",
+    8004: "ORANGE"
+}
+
+import subprocess
+import socket
 
 
 def player_factory(player_key):
@@ -28,7 +43,6 @@ def player_factory(player_key):
         return LLMPlayer(player_key[1])
     else:
         raise ValueError("Invalid player key")
-
 
 @bp.route("/games", methods=("POST",))
 def post_game_endpoint():

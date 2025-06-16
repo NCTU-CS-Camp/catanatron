@@ -76,6 +76,13 @@ class LLMAgentClient:
         if msg_type == 'welcome':
             print(f"Received welcome: {data.get('message')}")
             
+        elif msg_type == 'waiting_for_players':
+            message = data.get('message', 'Waiting for more players...')
+            player_count = data.get('player_count', 0)
+            min_players = data.get('min_players', 3)
+            max_players = data.get('max_players', 4)
+            print(f"🕐 {message} ({player_count}/{max_players} connected, need {min_players} minimum)")
+            
         elif msg_type == 'game_started':
             print(f"Game started!")
             # 初始化资源追踪

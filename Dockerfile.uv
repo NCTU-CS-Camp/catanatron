@@ -24,5 +24,4 @@ ENV FLASK_APP=catanatron.web/catanatron.web
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=5001
 
-# Use uv to run the Flask server
-CMD uv run python start_server.py --min-players 3 --max-players 4 --wait-time 20
+CMD uv run python start_server.py --min-players 3 --max-players 4 --wait-time 20 --host 0.0.0.0

@@ -21,7 +21,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: Dockerfile.uv
+      dockerfile: Dockerfile.web
     environment:
       - DATABASE_URL=postgresql://catanatron:victorypoint@db:5432/catanatron_db
       - PYTHONUNBUFFERED=1
@@ -34,6 +34,25 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  websocketllm:
+    build:
+      context: .
+      dockerfile: Dockerfile.uv
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    ports:
+      - 8001:8001
+      - 8002:8002
+      - 8003:8003
+      - 8004:8004
+      - 8100:8100 # HTTP Status API
+    stdin_open: true
+    restart: always
+    volumes:
+      - .:/app
+    depends_on:
+      - server
   react-ui:
     build: ./ui
     ports:

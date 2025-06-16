@@ -10,6 +10,10 @@ import logging
 import traceback
 import argparse
 
+# Add aiohttp for HTTP status API
+from aiohttp import web
+import aiohttp_cors
+
 from catanatron.game import Game
 from catanatron.models.player import Color, Player
 from catanatron.models.actions import Action, generate_playable_actions
@@ -74,9 +78,18 @@ class GameEngineServer:
         self.start_game_timer = None
         self.waiting_time = 30  # 等待 30 秒後自動開始（如果達到最少玩家數）
         
+        # HTTP 狀態 API 服務器
+        self.http_server = None
+        self.status_port = 8100  # HTTP 狀態 API 端口
+        
     async def start_all_servers(self):
-        """啟動所有端口的 WebSocket 服務器"""
+        """啟動所有端口的 WebSocket 服務器和 HTTP 狀態 API"""
         tasks = []
+        
+        # 啟動 HTTP 狀態 API 服務器
+        await self.start_http_server()
+        
+        # 啟動 WebSocket 服務器
         for port, color in self.port_color_mapping.items():
             task = asyncio.create_task(self.start_port_server(port, color))
             tasks.append(task)
@@ -84,7 +97,8 @@ class GameEngineServer:
         logger.info(f"Game Engine Server started on {self.host}")
         logger.info("Port assignments:")
         for port, color in self.port_color_mapping.items():
-            logger.info(f"  Port {port}: Player {color.value}")
+            logger.info(f"  WebSocket Port {port}: Player {color.value}")
+        logger.info(f"  HTTP Status API: http://{self.host}:{self.status_port}/status")
         
         # 等待所有服務器啟動
         await asyncio.gather(*tasks)
@@ -668,6 +682,130 @@ class GameEngineServer:
         """廣播訊息給所有玩家"""
         for color in self.player_connections:
             await self.send_to_player(color, message)
+    
+    def get_port_by_color(self, color: Color) -> int:
+        """Get port number for a given color"""
+        for port, port_color in self.port_color_mapping.items():
+            if port_color == color:
+                return port
+        return 0
+    
+    def get_websocket_status(self):
+        """取得 WebSocket 連接狀態資訊"""
+        status = {
+            "websocket_game_engine": {
+                "status": "running",
+                "host": self.host,
+                "min_players": self.min_players,
+                "max_players": self.max_players,
+                "waiting_time": self.waiting_time
+            },
+            "port_assignments": {},
+            "player_connections": {},
+            "game_status": {
+                "game_started": self.game is not None,
+                "connected_players": 0,
+                "game_state": None
+            },
+            "summary": ""
+        }
+        
+        # 端口配置
+        for port, color in self.port_color_mapping.items():
+            status["port_assignments"][str(port)] = {
+                "port": port,
+                "color": color.value,
+                "description": f"{color.value} player"
+            }
+        
+        # 玩家連接狀態
+        connected_count = 0
+        for color, conn in self.player_connections.items():
+            is_connected = conn.connected if conn else False
+            # 修復：確保 port 是整數，不是 Color 對象
+            port = self.get_port_by_color(color)
+            status["player_connections"][color.value] = {
+                "color": color.value,
+                "port": port,
+                "connected": is_connected,
+                "status": "connected" if is_connected else "disconnected"
+            }
+            if is_connected:
+                connected_count += 1
+        
+        status["game_status"]["connected_players"] = connected_count
+        
+        # 遊戲狀態詳情
+        if self.game:
+            try:
+                current_player = self.game.state.current_color()
+                turn_number = self.game.state.num_turns
+                winner = self.game.winning_color()
+                
+                status["game_status"]["game_state"] = {
+                    "current_player": current_player.value,
+                    "turn_number": turn_number,
+                    "winner": winner.value if winner else None,
+                    "game_finished": winner is not None
+                }
+            except Exception as e:
+                status["game_status"]["game_state"] = {
+                    "error": f"Unable to read game state: {str(e)}"
+                }
+        
+        # 總結狀態
+        if status["game_status"]["game_started"]:
+            if status["game_status"]["game_state"] and status["game_status"]["game_state"].get("winner"):
+                status["summary"] = f"Game finished! Winner: {status['game_status']['game_state']['winner']}"
+            else:
+                current_player = status["game_status"]["game_state"]["current_player"] if status["game_status"]["game_state"] else "unknown"
+                status["summary"] = f"Game in progress - {connected_count} players connected, current player: {current_player}"
+        elif connected_count >= self.min_players:
+            status["summary"] = f"Ready to start! {connected_count} players connected (min: {self.min_players})"
+        else:
+            status["summary"] = f"Waiting for players - {connected_count}/{self.min_players} connected"
+        
+        return status
+    
+    async def handle_status_request(self, request):
+        """處理 HTTP 狀態請求"""
+        try:
+            status = self.get_websocket_status()
+            return web.json_response(status)
+        except Exception as e:
+            logger.error(f"Error generating status response: {e}")
+            return web.json_response({
+                "error": "Internal server error",
+                "message": str(e)
+            }, status=500)
+    
+    async def start_http_server(self):
+        """啟動 HTTP 狀態 API 服務器"""
+        app = web.Application()
+        
+        # 設定 CORS
+        cors = aiohttp_cors.setup(app, defaults={
+            "*": aiohttp_cors.ResourceOptions(
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+                allow_methods="*"
+            )
+        })
+        
+        # 添加路由
+        status_resource = cors.add(app.router.add_get('/status', self.handle_status_request))
+        
+        # 啟動 HTTP 服務器
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, self.host, self.status_port)
+        await site.start()
+        
+        self.http_server = runner
+        logger.info(f"HTTP Status API started on http://{self.host}:{self.status_port}/status")
+        
+        return runner
 
 # 啟動服務器
 async def main():
