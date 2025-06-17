@@ -8,17 +8,18 @@ import {
   Box,
   Grid,
   Chip,
-  Divider,
   Alert,
   CircularProgress,
   IconButton,
   Tooltip,
+  Container,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
-  PlayArrow as PlayIcon,
   Visibility as WatchIcon,
   Home as HomeIcon,
+  SportsEsports as GameIcon,
+  Circle as CircleIcon,
 } from "@mui/icons-material";
 import {
   getGamesList,
@@ -36,25 +37,39 @@ export default function Lobby() {
   const [websocketStatus, setWebsocketStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
   const navigate = useNavigate();
 
   const fetchAllData = async () => {
     try {
-      const [gamesData, wsGame, wsStatus] = await Promise.allSettled([
-        getGamesList(),
-        getCurrentWebSocketGame(),
-        checkWebSocketEngineStatus(),
-      ]);
+      setError(null);
 
-      if (gamesData.status === "fulfilled") {
-        setGames(gamesData.value.games || []);
+      // 並行獲取所有數據
+      const [gamesResult, wsGameResult, wsStatusResult] =
+        await Promise.allSettled([
+          getGamesList(),
+          getCurrentWebSocketGame(),
+          checkWebSocketEngineStatus(),
+        ]);
+
+      // 處理遊戲列表
+      if (gamesResult.status === "fulfilled") {
+        setGames(gamesResult.value.games || []);
+      } else {
+        console.error("Failed to fetch games:", gamesResult.reason);
       }
 
-      if (wsGame.status === "fulfilled") {
-        setCurrentWebSocketGame(wsGame.value);
+      // 處理當前 WebSocket 遊戲
+      if (wsGameResult.status === "fulfilled") {
+        setCurrentWebSocketGame(wsGameResult.value);
 
-        // 如果有當前遊戲，獲取詳細信息
-        if (wsGame.value && !wsGame.value.error) {
+        // 如果有當前遊戲且不是錯誤，獲取詳細信息
+        if (
+          wsGameResult.value &&
+          !wsGameResult.value.error &&
+          wsGameResult.value.status !== "no_active_game"
+        ) {
           try {
             const detailed = await getDetailedWebSocketGame();
             setDetailedGame(detailed);
@@ -62,13 +77,24 @@ export default function Lobby() {
             console.error("Failed to get detailed game info:", error);
           }
         }
+      } else {
+        console.error("Failed to fetch WebSocket game:", wsGameResult.reason);
       }
 
-      if (wsStatus.status === "fulfilled") {
-        setWebsocketStatus(wsStatus.value);
+      // 處理 WebSocket 狀態
+      if (wsStatusResult.status === "fulfilled") {
+        setWebsocketStatus(wsStatusResult.value);
+      } else {
+        console.error(
+          "Failed to fetch WebSocket status:",
+          wsStatusResult.reason
+        );
       }
+
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch lobby data:", error);
+      setError("無法載入遊戲數據，請檢查伺服器連接");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -89,284 +115,540 @@ export default function Lobby() {
   };
 
   const handleJoinWebSocketGame = () => {
-    if (currentWebSocketGame && !currentWebSocketGame.error) {
-      navigate("/games/websocket/websocket_multiplayer_game");
-    }
+    navigate("/games/websocket/websocket_multiplayer_game");
   };
 
   const getPlayerColorDisplay = (color) => {
     const colorMap = {
-      RED: "紅色",
-      BLUE: "藍色",
-      WHITE: "白色",
-      ORANGE: "橙色",
+      RED: "RED Player",
+      BLUE: "BLUE Player",
+      WHITE: "WHITE Player",
+      ORANGE: "ORANGE Player",
     };
-    return colorMap[color] || color;
+    return colorMap[color] || `${color} Player`;
   };
 
-  const getGameStatusChip = (game) => {
-    // 處理 WebSocket 遊戲狀態
-    if (game.type === "websocket_multiplayer" && game.status) {
-      if (game.status.status === "active") {
-        return <Chip label="進行中" color="success" size="small" />;
-      } else if (game.status.status === "finished") {
-        return <Chip label="已結束" color="default" size="small" />;
-      }
-    }
+  const getPlayerIcon = (color) => {
+    const colorStyle = {
+      RED: "#f44336",
+      BLUE: "#2196f3",
+      WHITE: "#9e9e9e",
+      ORANGE: "#ff9800",
+    };
+    return colorStyle[color] || "#000";
+  };
 
-    // 處理一般遊戲狀態
-    if (game.status === "IN_PROGRESS" || game.status === "active") {
-      return <Chip label="進行中" color="success" size="small" />;
-    } else if (game.status === "FINISHED" || game.status === "finished") {
-      return <Chip label="已結束" color="default" size="small" />;
-    } else {
-      return <Chip label="等待中" color="warning" size="small" />;
-    }
+  const formatTime = (date) => {
+    return date.toLocaleTimeString("en-US", {
+      hour12: true,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const getConnectedPlayersCount = () => {
+    if (!websocketStatus?.player_connections) return 0;
+    return Object.values(websocketStatus.player_connections).filter(
+      (p) => p.connected
+    ).length;
+  };
+
+  const getTotalPlayersNeeded = () => {
+    return websocketStatus?.websocket_game_engine?.min_players || 3;
   };
 
   if (loading) {
     return (
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="60vh"
+        sx={{
+          minHeight: "100vh",
+          background:
+            "linear-gradient(135deg, #4fc3f7 0%, #29b6f6 50%, #03a9f4 100%)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
       >
-        <CircularProgress />
-        <Typography variant="h6" sx={{ ml: 2 }}>
-          載入遊戲大廳...
-        </Typography>
+        <Box sx={{ textAlign: "center", color: "white" }}>
+          <CircularProgress sx={{ color: "white", mb: 2 }} size={60} />
+          <Typography variant="h6">載入遊戲大廳...</Typography>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <div className="lobby-container">
-      <Box sx={{ p: 3 }}>
-        {/* 標題和控制項 */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-        >
-          <Typography variant="h4" component="h1">
-            🎮 遊戲大廳
-          </Typography>
-          <Box>
-            <Tooltip title="返回主頁">
-              <IconButton onClick={() => navigate("/")} color="primary">
-                <HomeIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="刷新">
-              <IconButton onClick={handleRefresh} disabled={refreshing}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #4fc3f7 0%, #29b6f6 50%, #03a9f4 100%)",
+        position: "relative",
+        overflow: "auto",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
+            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 1px, transparent 1px),
+            radial-gradient(circle at 60% 20%, rgba(255,255,255,0.05) 2px, transparent 2px)
+          `,
+          backgroundSize: "100px 100px, 150px 150px, 200px 200px",
+          animation: "float 6s ease-in-out infinite",
+          pointerEvents: "none",
+        },
+      }}
+    >
+      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+        <Box sx={{ py: 4 }}>
+          {/* 標題區域 */}
+          <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 2,
+              }}
+            >
+              <GameIcon sx={{ fontSize: 40, color: "#333", mr: 2 }} />
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{
+                  color: "#333",
+                  fontWeight: "bold",
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                Catanatron Game Lobby
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <Typography
+                variant="h5"
+                sx={{ color: "#2e7d32", fontWeight: "bold" }}
+              >
+                {getConnectedPlayersCount()}/{getTotalPlayersNeeded()} Players
+                Connected
+              </Typography>
+              <Typography variant="body1" sx={{ color: "#555" }}>
+                Last updated: {formatTime(lastUpdated)}
+              </Typography>
+              <IconButton
+                onClick={handleRefresh}
+                disabled={refreshing}
+                sx={{
+                  color: "#333",
+                  "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" },
+                }}
+              >
                 <RefreshIcon className={refreshing ? "rotating" : ""} />
               </IconButton>
-            </Tooltip>
+            </Box>
           </Box>
-        </Box>
 
-        {/* WebSocket 引擎狀態 */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              🔗 WebSocket 遊戲引擎狀態
-            </Typography>
-            {websocketStatus ? (
-              <Alert severity="success">
-                引擎運行中 - 端口 8100
-                {websocketStatus.summary && (
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {websocketStatus.summary}
-                  </Typography>
-                )}
-              </Alert>
-            ) : (
-              <Alert severity="error">
-                WebSocket 遊戲引擎離線。請啟動：
-                <code>docker compose up -d</code>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+          {/* 錯誤提示 */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-        {/* 當前 WebSocket 遊戲 */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              🎯 當前 WebSocket 遊戲
-            </Typography>
+          {/* 玩家狀態卡片 */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {websocketStatus?.port_assignments &&
+              Object.entries(websocketStatus.port_assignments).map(
+                ([port, playerInfo]) => {
+                  const isConnected =
+                    websocketStatus.player_connections[playerInfo.color]
+                      ?.connected || false;
+                  const connectionTime =
+                    websocketStatus.player_connections[playerInfo.color]
+                      ?.connected_at;
+                  const ipAddress =
+                    websocketStatus.player_connections[playerInfo.color]
+                      ?.client_info?.remote_ip || "192.168.65.1";
 
-            {currentWebSocketGame && !currentWebSocketGame.error ? (
-              <Box>
-                {getGameStatusChip("IN_PROGRESS")}
-                <Typography variant="body1" sx={{ mt: 2 }}>
-                  有活躍的多人遊戲正在進行中
-                </Typography>
-
-                {detailedGame && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      遊戲詳情：
-                    </Typography>
-                    <div className="game-details">
-                      <pre>{JSON.stringify(detailedGame, null, 2)}</pre>
-                    </div>
-                  </Box>
-                )}
-
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<WatchIcon />}
-                    onClick={handleJoinWebSocketGame}
-                    sx={{ mr: 1 }}
-                  >
-                    觀看遊戲
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<PlayIcon />}
-                    onClick={handleJoinWebSocketGame}
-                  >
-                    加入遊戲
-                  </Button>
-                </Box>
-              </Box>
-            ) : (
-              <Box>
-                <Alert severity="info">目前沒有活躍的 WebSocket 遊戲</Alert>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  你可以啟動 LLM 客戶端來創建新遊戲：
-                </Typography>
-                <Typography
-                  variant="body2"
-                  component="code"
-                  sx={{
-                    mt: 1,
-                    display: "block",
-                    background: "#f5f5f5",
-                    p: 1,
-                    borderRadius: 1,
-                  }}
-                >
-                  ./start_llm_clients.sh --players 3
-                </Typography>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 遊戲列表 */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              📋 所有遊戲列表
-            </Typography>
-
-            {games.length > 0 ? (
-              <div className="games-grid-container">
-                <Grid container spacing={2}>
-                  {games.map((game, index) => (
-                    <Grid item xs={12} md={6} lg={4} key={index}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h6">
-                            遊戲 #{index + 1}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            遊戲 ID: {game.game_id || "未知"}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            類型:{" "}
-                            {game.type === "websocket_multiplayer"
-                              ? "WebSocket 多人遊戲"
-                              : "Flask 單人遊戲"}
-                          </Typography>
-                          <Box sx={{ mt: 1 }}>{getGameStatusChip(game)}</Box>
-
-                          {/* WebSocket 遊戲詳細信息 */}
-                          {game.type === "websocket_multiplayer" &&
-                            game.status && (
-                              <Box sx={{ mt: 1 }}>
-                                <Typography variant="body2">
-                                  連接玩家: {game.status.connected_players}/3
-                                </Typography>
-                                <Typography variant="body2">
-                                  當前玩家: {game.status.current_player}
-                                </Typography>
-                                <Typography variant="body2">
-                                  回合: {game.status.turn_number}
+                  return (
+                    <Grid item xs={12} sm={6} md={3} key={port}>
+                      <Card
+                        sx={{
+                          borderRadius: 3,
+                          border: isConnected
+                            ? "2px solid transparent"
+                            : "2px solid #f44336",
+                          backgroundColor: isConnected
+                            ? "rgba(255,255,255,0.95)"
+                            : "rgba(255,235,238,0.95)",
+                          backdropFilter: "blur(10px)",
+                          transition: "all 0.3s ease",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+                          },
+                        }}
+                      >
+                        <CardContent sx={{ p: 3 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 2,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 24,
+                                height: 60,
+                                backgroundColor: getPlayerIcon(
+                                  playerInfo.color
+                                ),
+                                borderRadius: 2,
+                                mr: 2,
+                              }}
+                            />
+                            <Box>
+                              <Typography
+                                variant="h6"
+                                sx={{ fontWeight: "bold", color: "#333" }}
+                              >
+                                {getPlayerColorDisplay(playerInfo.color)}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mt: 0.5,
+                                }}
+                              >
+                                <CircleIcon
+                                  sx={{
+                                    fontSize: 12,
+                                    color: isConnected ? "#4caf50" : "#f44336",
+                                    mr: 0.5,
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isConnected ? "#4caf50" : "#f44336",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {isConnected ? "Connected" : "Offline"}
                                 </Typography>
                               </Box>
-                            )}
-
-                          {/* 一般遊戲玩家信息 */}
-                          {game.players && (
-                            <Box sx={{ mt: 1 }}>
-                              <Typography variant="body2">
-                                玩家: {game.players.join(", ")}
-                              </Typography>
                             </Box>
-                          )}
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                              if (game.type === "websocket_multiplayer") {
-                                // WebSocket 遊戲使用特殊路由
-                                navigate(`/games/websocket/${game.game_id}`);
-                              } else {
-                                // 一般遊戲
-                                navigate(`/games/${game.game_id}`);
-                              }
-                            }}
-                            sx={{ mt: 1 }}
-                            disabled={!game.game_id}
-                          >
-                            {game.type === "websocket_multiplayer"
-                              ? "觀看 WebSocket 遊戲"
-                              : "查看遊戲"}
-                          </Button>
+                          </Box>
+
+                          <Box sx={{ color: "#666", fontSize: "0.875rem" }}>
+                            <Typography variant="body2">
+                              Port: {port}
+                            </Typography>
+                            <Typography variant="body2">
+                              IP: {ipAddress}
+                            </Typography>
+                            {isConnected && connectionTime && (
+                              <Typography variant="body2">
+                                Connected:{" "}
+                                {new Date(connectionTime).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour12: true,
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  }
+                                )}
+                              </Typography>
+                            )}
+                          </Box>
                         </CardContent>
                       </Card>
                     </Grid>
-                  ))}
-                </Grid>
-              </div>
-            ) : (
-              <Alert severity="info">目前沒有遊戲記錄</Alert>
-            )}
-          </CardContent>
-        </Card>
+                  );
+                }
+              )}
+          </Grid>
 
-        {/* 使用說明 */}
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              💡 使用說明
-            </Typography>
-            <Typography variant="body2" paragraph>
-              1. <strong>WebSocket 遊戲</strong>：即時多人對戰遊戲，使用
-              WebSocket 技術
-            </Typography>
-            <Typography variant="body2" paragraph>
-              2. <strong>啟動遊戲</strong>：運行{" "}
-              <code>./start_llm_clients.sh --players 3</code> 來創建新的多人遊戲
-            </Typography>
-            <Typography variant="body2" paragraph>
-              3. <strong>觀看遊戲</strong>
-              ：點擊「觀看遊戲」來實時觀看正在進行的遊戲
-            </Typography>
-            <Typography variant="body2">
-              4. <strong>自動刷新</strong>：頁面每 5
-              秒自動刷新一次，顯示最新狀態
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
-    </div>
+          {/* 遊戲狀態區域 */}
+          <Card
+            sx={{
+              borderRadius: 3,
+              backgroundColor: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(10px)",
+              mb: 3,
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#333", mb: 3 }}
+              >
+                Game Status
+              </Typography>
+
+              {websocketStatus?.game_status?.game_started ? (
+                <Box
+                  sx={{
+                    p: 3,
+                    backgroundColor: "#e8f5e8",
+                    borderRadius: 2,
+                    border: "2px solid #4caf50",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        backgroundColor: "#4caf50",
+                        borderRadius: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        mr: 2,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          color: "white",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="h6"
+                      sx={{ color: "#2e7d32", fontWeight: "bold" }}
+                    >
+                      遊戲進行中！
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<WatchIcon />}
+                    onClick={handleJoinWebSocketGame}
+                    sx={{
+                      backgroundColor: "#1976d2",
+                      "&:hover": { backgroundColor: "#1565c0" },
+                      borderRadius: 2,
+                      px: 4,
+                      py: 1.5,
+                    }}
+                  >
+                    觀看遊戲
+                  </Button>
+                </Box>
+              ) : websocketStatus &&
+                getConnectedPlayersCount() >= getTotalPlayersNeeded() ? (
+                <Box
+                  sx={{
+                    p: 3,
+                    backgroundColor: "#fff3e0",
+                    borderRadius: 2,
+                    border: "2px solid #ff9800",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        backgroundColor: "#ff9800",
+                        borderRadius: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        mr: 2,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          color: "white",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ⏳
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="h6"
+                      sx={{ color: "#f57c00", fontWeight: "bold" }}
+                    >
+                      準備就緒！等待遊戲開始...
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ color: "#555" }}>
+                    所有玩家已連接，遊戲即將自動開始
+                  </Typography>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    p: 3,
+                    backgroundColor: "rgba(33, 150, 243, 0.1)",
+                    borderRadius: 2,
+                    border: "2px solid #2196f3",
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "#1976d2", fontWeight: "bold" }}
+                  >
+                    等待玩家加入... ({getConnectedPlayersCount()}/
+                    {getTotalPlayersNeeded()} 已連接)
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: "#555", mt: 1 }}>
+                    需要至少 {getTotalPlayersNeeded()} 名玩家才能開始遊戲
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* WebSocket 遊戲列表 */}
+          {games.filter((game) => game.type === "websocket_multiplayer")
+            .length > 0 && (
+            <Card
+              sx={{
+                borderRadius: 3,
+                backgroundColor: "rgba(255,255,255,0.95)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: "bold", color: "#333", mb: 3 }}
+                >
+                  📋 WebSocket 遊戲歷史
+                </Typography>
+
+                <Grid container spacing={2}>
+                  {games
+                    .filter((game) => game.type === "websocket_multiplayer")
+                    .map((game, index) => (
+                      <Grid
+                        item
+                        xs={12}
+                        md={6}
+                        lg={4}
+                        key={game.game_id || index}
+                      >
+                        <Card
+                          variant="outlined"
+                          sx={{
+                            borderRadius: 2,
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+                            },
+                          }}
+                        >
+                          <CardContent>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: "bold", mb: 1 }}
+                            >
+                              遊戲 #{index + 1}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 1 }}
+                            >
+                              ID: {game.game_id || "未知"}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 2 }}
+                            >
+                              類型: WebSocket 多人遊戲
+                            </Typography>
+
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() =>
+                                navigate(`/games/websocket/${game.game_id}`)
+                              }
+                              disabled={!game.game_id}
+                              sx={{ borderRadius: 2 }}
+                            >
+                              查看遊戲
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 返回主頁按鈕 */}
+          <Box sx={{ position: "fixed", top: 20, left: 20 }}>
+            <IconButton
+              onClick={() => navigate("/")}
+              sx={{
+                backgroundColor: "rgba(255,255,255,0.9)",
+                color: "#333",
+                "&:hover": { backgroundColor: "rgba(255,255,255,1)" },
+              }}
+            >
+              <HomeIcon />
+            </IconButton>
+          </Box>
+        </Box>
+      </Container>
+
+      <style jsx>{`
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          33% {
+            transform: translateY(-10px) rotate(1deg);
+          }
+          66% {
+            transform: translateY(-5px) rotate(-1deg);
+          }
+        }
+        .rotating {
+          animation: rotate 1s linear infinite;
+        }
+        @keyframes rotate {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </Box>
   );
 }

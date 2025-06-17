@@ -45,7 +45,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <h1 className="logo">卡坦島</h1> 
+      <h1 className="logo">卡坦島</h1>
 
       <div className="switchable">
         {!loading ? (
@@ -93,7 +93,7 @@ export default function HomePage() {
               color="secondary"
               onClick={() => navigate("/lobby")}
             >
-              線上對戰(待開發)
+              線上對戰
             </Button>
           </>
         ) : (
