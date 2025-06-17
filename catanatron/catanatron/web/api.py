@@ -6,7 +6,7 @@ from typing import List
 from flask import Response, Blueprint, jsonify, abort, request
 
 from catanatron.web.models import upsert_game_state, get_game_state
-from catanatron.catanatron_json import GameEncoder, action_from_json
+from catanatron.json import GameEncoder, action_from_json
 from catanatron.models.player import Color, Player, RandomPlayer
 from catanatron.game import Game
 from catanatron.players.value import ValueFunctionPlayer

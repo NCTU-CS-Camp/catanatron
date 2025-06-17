@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 
 from catanatron.game import GameAccumulator, Game
-from catanatron.catanatron_json import GameEncoder
+from catanatron.json import GameEncoder
 from catanatron.state_functions import (
     get_actual_victory_points,
     get_dev_cards_in_hand,
