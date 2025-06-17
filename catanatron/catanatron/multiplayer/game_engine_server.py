@@ -679,21 +679,99 @@ class GameEngineServer:
             # 同步遊戲狀態到資料庫
             await self.sync_game_to_database()
             
-            game_state_json = json.dumps(self.game, cls=GameEncoder)
-            message = {
-                'type': 'game_state_update',
-                'game_state': game_state_json,
-                'current_player': self.game.state.current_color().value,
-                'debug_info': {
-                    'current_prompt': str(self.game.state.current_prompt),
-                    'actions_count': len(self.game.state.playable_actions)
+            # 為每個玩家發送個性化的遊戲狀態
+            for color in self.player_connections:
+                filtered_game_state = self.filter_game_state_for_player(self.game, color)
+                game_state_json = json.dumps(filtered_game_state, cls=GameEncoder)
+                message = {
+                    'type': 'game_state_update',
+                    'game_state': game_state_json,
+                    'current_player': self.game.state.current_color().value,
+                    'debug_info': {
+                        'current_prompt': str(self.game.state.current_prompt),
+                        'actions_count': len(self.game.state.playable_actions),
+                        'filtered_for': color.value
+                    }
                 }
-            }
-            
-            await self.broadcast_to_all(message)
+                
+                # 記錄發送給用戶之前的JSON內容
+                # logger.info(f"Sending to {color.value}: {json.dumps(message, ensure_ascii=False)}")
+                
+                await self.send_to_player(color, message)
         except Exception as e:
             logger.error(f"Error broadcasting game state: {e}")
             traceback.print_exc()
+
+    def filter_game_state_for_player(self, game, target_color: Color):
+        """為特定玩家過濾遊戲狀態，隱藏其他玩家的隱私資訊"""
+        # 深拷貝遊戲物件以避免修改原始物件
+        import copy
+        filtered_game = copy.deepcopy(game)
+        
+        if not hasattr(filtered_game.state, 'player_state') or not filtered_game.state.player_state:
+            return filtered_game
+        
+        # 定義需要隱藏的隱私資訊字段
+        private_fields = [
+            '_WOOD_IN_HAND',
+            '_BRICK_IN_HAND', 
+            '_SHEEP_IN_HAND',
+            '_WHEAT_IN_HAND',
+            '_ORE_IN_HAND',
+            '_KNIGHT_IN_HAND',
+            '_YEAR_OF_PLENTY_IN_HAND',
+            '_MONOPOLY_IN_HAND', 
+            '_ROAD_BUILDING_IN_HAND',
+            '_VICTORY_POINT_IN_HAND'
+        ]
+        
+        # 獲取玩家索引
+        colors = filtered_game.state.colors
+        target_player_index = None
+        for i, color in enumerate(colors):
+            if color == target_color:
+                target_player_index = i
+                break
+        
+        if target_player_index is None:
+            logger.warning(f"Player color {target_color.value} not found in game colors")
+            return filtered_game
+        
+        logger.info(f"Filtering for player {target_color.value} (P{target_player_index})")
+        
+        # 過濾 player_state 中的隱私資訊
+        filtered_player_state = {}
+        original_count = len(filtered_game.state.player_state)
+        private_kept = 0
+        private_removed = 0
+        
+        for key, value in filtered_game.state.player_state.items():
+            # 檢查這個 key 是否包含隱私資訊
+            is_private = any(private_field in key for private_field in private_fields)
+            
+            if is_private:
+                # 檢查這個 key 是否屬於目標玩家
+                if key.startswith(f'P{target_player_index}_'):
+                    # 保留自己的隱私資訊
+                    filtered_player_state[key] = value
+                    private_kept += 1
+                else:
+                    # 完全不加入其他玩家的隱私資訊
+                    private_removed += 1
+                    logger.debug(f"Removed private field: {key}")
+                    # 不加入 filtered_player_state
+            else:
+                # 公開資訊保留給所有玩家
+                filtered_player_state[key] = value
+        
+        logger.info(f"Filter results for {target_color.value}: Original={original_count}, Final={len(filtered_player_state)}, Private kept={private_kept}, Private removed={private_removed}")
+        
+        # 記錄過濾後的隱私字段
+        private_fields_in_result = [key for key in filtered_player_state.keys() if any(pf in key for pf in private_fields)]
+        logger.info(f"Private fields remaining for {target_color.value}: {private_fields_in_result}")
+        
+        filtered_game.state.player_state = filtered_player_state
+        return filtered_game
 
     async def broadcast_game_end(self, winner: Color):
         """廣播遊戲結束"""
