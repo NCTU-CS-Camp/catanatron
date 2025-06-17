@@ -104,8 +104,8 @@ export default function Lobby() {
   useEffect(() => {
     fetchAllData();
 
-    // 每 5 秒自動刷新一次
-    const interval = setInterval(fetchAllData, 5000);
+    // 每 1 秒自動刷新一次
+    const interval = setInterval(fetchAllData, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -155,7 +155,15 @@ export default function Lobby() {
   };
 
   const getTotalPlayersNeeded = () => {
+    return websocketStatus?.websocket_game_engine?.max_players || 4;
+  };
+
+  const getMinPlayersNeeded = () => {
     return websocketStatus?.websocket_game_engine?.min_players || 3;
+  };
+
+  const getCountdownRemaining = () => {
+    return websocketStatus?.game_status?.countdown_remaining;
   };
 
   if (loading) {
@@ -459,7 +467,7 @@ export default function Lobby() {
                   </Button>
                 </Box>
               ) : websocketStatus &&
-                getConnectedPlayersCount() >= getTotalPlayersNeeded() ? (
+                getConnectedPlayersCount() >= getMinPlayersNeeded() ? (
                 <Box
                   sx={{
                     p: 3,
@@ -495,11 +503,15 @@ export default function Lobby() {
                       variant="h6"
                       sx={{ color: "#f57c00", fontWeight: "bold" }}
                     >
-                      準備就緒！等待遊戲開始...
+                      {getConnectedPlayersCount() >= getTotalPlayersNeeded()
+                        ? "準備就緒！等待遊戲開始..."
+                        : `遊戲將在 ${getCountdownRemaining() || 0} 秒後開始`}
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ color: "#555" }}>
-                    所有玩家已連接，遊戲即將自動開始
+                    {getConnectedPlayersCount() >= getTotalPlayersNeeded()
+                      ? "所有玩家已連接，遊戲即將自動開始"
+                      : `已達到最少玩家數 (${getConnectedPlayersCount()}/${getMinPlayersNeeded()})，等待更多玩家加入或倒數結束`}
                   </Typography>
                 </Box>
               ) : (
@@ -519,94 +531,12 @@ export default function Lobby() {
                     {getTotalPlayersNeeded()} 已連接)
                   </Typography>
                   <Typography variant="body1" sx={{ color: "#555", mt: 1 }}>
-                    需要至少 {getTotalPlayersNeeded()} 名玩家才能開始遊戲
+                    需要至少 {getMinPlayersNeeded()} 名玩家才能開始遊戲
                   </Typography>
                 </Box>
               )}
             </CardContent>
           </Card>
-
-          {/* WebSocket 遊戲列表 */}
-          {games.filter((game) => game.type === "websocket_multiplayer")
-            .length > 0 && (
-            <Card
-              sx={{
-                borderRadius: 3,
-                backgroundColor: "rgba(255,255,255,0.95)",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <CardContent sx={{ p: 4 }}>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: "bold", color: "#333", mb: 3 }}
-                >
-                  📋 WebSocket 遊戲歷史
-                </Typography>
-
-                <Grid container spacing={2}>
-                  {games
-                    .filter((game) => game.type === "websocket_multiplayer")
-                    .map((game, index) => (
-                      <Grid
-                        item
-                        xs={12}
-                        md={6}
-                        lg={4}
-                        key={game.game_id || index}
-                      >
-                        <Card
-                          variant="outlined"
-                          sx={{
-                            borderRadius: 2,
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-                            },
-                          }}
-                        >
-                          <CardContent>
-                            <Typography
-                              variant="h6"
-                              sx={{ fontWeight: "bold", mb: 1 }}
-                            >
-                              遊戲 #{index + 1}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ mb: 1 }}
-                            >
-                              ID: {game.game_id || "未知"}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ mb: 2 }}
-                            >
-                              類型: WebSocket 多人遊戲
-                            </Typography>
-
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() =>
-                                navigate(`/games/websocket/${game.game_id}`)
-                              }
-                              disabled={!game.game_id}
-                              sx={{ borderRadius: 2 }}
-                            >
-                              查看遊戲
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    ))}
-                </Grid>
-              </CardContent>
-            </Card>
-          )}
 
           {/* 返回主頁按鈕 */}
           <Box sx={{ position: "fixed", top: 20, left: 20 }}>

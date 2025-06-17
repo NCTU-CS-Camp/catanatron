@@ -89,6 +89,9 @@ class GameEngineServer:
         self.start_game_timer = None
         self.waiting_time = 30  # 等待 30 秒後自動開始（如果達到最少玩家數）
         
+        # 倒數計時相關屬性
+        self.countdown_start_time = None  # 倒數開始時間
+        
         # HTTP 狀態 API 服務器
         self.http_server = None
         self.status_port = 8100  # HTTP 狀態 API 端口
@@ -411,12 +414,17 @@ class GameEngineServer:
             if self.start_game_timer:
                 self.start_game_timer.cancel()
                 self.start_game_timer = None
+            if self.countdown_start_time:
+                self.countdown_start_time = None
             await self.start_game()
         elif connected_count >= self.min_players:
             # 達到最少玩家數，開始倒數計時
             if not self.start_game_timer:
                 logger.info(f"{connected_count} players connected (min: {self.min_players}, max: {self.max_players})")
                 logger.info(f"Game will start in {self.waiting_time} seconds, or when max players join...")
+                
+                # 記錄倒數開始時間
+                self.countdown_start_time = time.time()
                 
                 # 廣播等待訊息給所有玩家
                 await self.broadcast_to_all({
@@ -431,7 +439,13 @@ class GameEngineServer:
                 # 設定計時器
                 self.start_game_timer = asyncio.create_task(self._start_game_after_delay())
         else:
-            # 玩家數量不足
+            # 玩家數量不足，重置倒數計時
+            if self.countdown_start_time:
+                self.countdown_start_time = None
+            if self.start_game_timer:
+                self.start_game_timer.cancel()
+                self.start_game_timer = None
+                
             logger.info(f"Only {connected_count} players connected. Need at least {self.min_players} players.")
             await self.broadcast_to_all({
                 'type': 'waiting_for_players',
@@ -548,6 +562,9 @@ class GameEngineServer:
                 return
             
             logger.info(f"Game started with {len(self.game.state.players)} players!")
+            
+            # 重置倒數計時
+            self.countdown_start_time = None
             
             # 廣播遊戲開始
             await self.broadcast_to_all({
@@ -859,6 +876,17 @@ class GameEngineServer:
                 connected_count += 1
         
         status["game_status"]["connected_players"] = connected_count
+        
+        # 計算剩餘倒數時間
+        countdown_remaining = None
+        if (self.countdown_start_time and 
+            not self.game and 
+            connected_count >= self.min_players and 
+            connected_count < self.max_players):
+            elapsed_time = time.time() - self.countdown_start_time
+            countdown_remaining = max(0, self.waiting_time - int(elapsed_time))
+            
+        status["game_status"]["countdown_remaining"] = countdown_remaining
         
         # 遊戲狀態詳情
         if self.game:
