@@ -73,6 +73,7 @@ PLAYER_INITIAL_STATE = {
     "HAS_ARMY": False,
     "HAS_ROLLED": False,
     "HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN": False,
+    "TRADES_OFFERED_THIS_TURN": 0,  # 新增：追蹤此回合發起的交易次數
     # de-normalized features (for performance since we think they are good features)
     "ACTUAL_VICTORY_POINTS": 0,
     "LONGEST_ROAD_LENGTH": 0,
@@ -613,6 +614,10 @@ def apply_action(state: State, action: Action):
         state.current_prompt = ActionPrompt.PLAY_TURN
         state.playable_actions = generate_playable_actions(state)
     elif action.action_type == ActionType.OFFER_TRADE:
+        # 增加交易次數計數
+        key = player_key(state, action.color)
+        state.player_state[f"{key}_TRADES_OFFERED_THIS_TURN"] += 1
+        
         # 設置交易狀態
         state.is_resolving_trade = True
         

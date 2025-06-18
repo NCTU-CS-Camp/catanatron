@@ -337,8 +337,15 @@ def domestic_trade_possibilities(state, color) -> List[Action]:
     """生成玩家間交易提案"""
     actions = []
     
-    # 獲取玩家資源
+    # 檢查交易次數限制
     key = player_key(state, color)
+    trades_offered = state.player_state.get(f"{key}_TRADES_OFFERED_THIS_TURN", 0)
+    
+    # 如果已經達到交易次數上限（2次），則不生成任何交易選項
+    if trades_offered >= 2:
+        return actions
+    
+    # 獲取玩家資源
     player_resources = [
         state.player_state.get(f'{key}_WOOD_IN_HAND', 0),
         state.player_state.get(f'{key}_BRICK_IN_HAND', 0), 

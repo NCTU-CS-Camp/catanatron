@@ -336,6 +336,7 @@ def player_clean_turn(state, color):
     key = player_key(state, color)
     state.player_state[f"{key}_HAS_PLAYED_DEVELOPMENT_CARD_IN_TURN"] = False
     state.player_state[f"{key}_HAS_ROLLED"] = False
+    state.player_state[f"{key}_TRADES_OFFERED_THIS_TURN"] = 0  # 重置交易次數計數器
     # Dev cards owned this turn will be playable next turn
     state.player_state[f"{key}_KNIGHT_OWNED_AT_START"] = (
         state.player_state[f"{key}_KNIGHT_IN_HAND"] > 0
