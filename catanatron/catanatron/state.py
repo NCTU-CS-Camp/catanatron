@@ -371,8 +371,10 @@ def apply_action(state: State, action: Action):
     elif action.action_type == ActionType.BUILD_ROAD:
         edge = action.value
         if state.is_initial_build_phase:
-            state.board.build_road(action.color, edge)
+            result = state.board.build_road(action.color, edge)
+            previous_road_color, road_color, road_lengths = result
             build_road(state, action.color, edge, True)
+            maintain_longest_road(state, previous_road_color, road_color, road_lengths)
 
             # state.current_player_index depend on what index are we
             # state.current_prompt too
