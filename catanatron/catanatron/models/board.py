@@ -139,9 +139,13 @@ class Board:
                         for component in self.connected_components[edge_color]
                     ]
                     self.road_lengths[edge_color] = max(component_lengths) if component_lengths else 0
-                    self.road_color, self.road_length = max(
-                        self.road_lengths.items(), key=lambda e: e[1]
-                    )
+                    # Recalculate global longest road across all colors
+                    if self.road_lengths:
+                        self.road_color, self.road_length = max(
+                            self.road_lengths.items(), key=lambda e: e[1]
+                        )
+                    else:
+                        self.road_color, self.road_length = None, 0
 
         self.board_buildable_ids.discard(node_id)
         for n in STATIC_GRAPH.neighbors(node_id):
@@ -222,10 +226,14 @@ class Board:
             chosen_index = a_index if a_index is not None else b_index
             component = self.connected_components[color][chosen_index]
 
-        # find longest path on component under question
+        # find longest path across ALL components for this color
         previous_road_color = self.road_color
-        candidate_length = len(longest_acyclic_path(self, component, color))
-        self.road_lengths[color] = max(self.road_lengths[color], candidate_length)
+        all_component_lengths = [
+            len(longest_acyclic_path(self, comp, color))
+            for comp in self.connected_components[color]
+        ]
+        candidate_length = max(all_component_lengths) if all_component_lengths else 0
+        self.road_lengths[color] = candidate_length
         if candidate_length >= 5 and candidate_length > self.road_length:
             self.road_color = color
             self.road_length = candidate_length

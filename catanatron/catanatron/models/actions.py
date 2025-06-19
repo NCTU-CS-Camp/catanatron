@@ -438,22 +438,22 @@ def dev_card_possibilities(state, color):
     
     # Knight card
     if (state.player_state.get(f"{key}_KNIGHT_IN_HAND", 0) >= 1 and
-        not state.player_state.get(f"{key}_KNIGHT_OWNED_AT_START", True)):
+        state.player_state.get(f"{key}_KNIGHT_OWNED_AT_START", False)):
         actions.append(Action(color, ActionType.PLAY_KNIGHT_CARD, None))
     
     # Year of Plenty
     if (state.player_state.get(f"{key}_YEAR_OF_PLENTY_IN_HAND", 0) >= 1 and
-        not state.player_state.get(f"{key}_YEAR_OF_PLENTY_OWNED_AT_START", True)):
+        state.player_state.get(f"{key}_YEAR_OF_PLENTY_OWNED_AT_START", False)):
         actions.extend(year_of_plenty_possibilities(color, state.resource_freqdeck))
     
     # Monopoly
     if (state.player_state.get(f"{key}_MONOPOLY_IN_HAND", 0) >= 1 and
-        not state.player_state.get(f"{key}_MONOPOLY_OWNED_AT_START", True)):
+        state.player_state.get(f"{key}_MONOPOLY_OWNED_AT_START", False)):
         actions.extend(monopoly_possibilities(color))
     
     # Road Building
     if (state.player_state.get(f"{key}_ROAD_BUILDING_IN_HAND", 0) >= 1 and
-        not state.player_state.get(f"{key}_ROAD_BUILDING_OWNED_AT_START", True)):
+        state.player_state.get(f"{key}_ROAD_BUILDING_OWNED_AT_START", False)):
         actions.append(Action(color, ActionType.PLAY_ROAD_BUILDING, None))
     
     return actions
