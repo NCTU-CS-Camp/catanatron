@@ -738,15 +738,15 @@ class LLMPlayer(Player):
                             include_thoughts=True  # 包含思考過程
                         ),
                         temperature=0.7,
-                        max_output_tokens=4096
+                        max_output_tokens=8192
                     )
                 )
                 
                 # 打印思考過程（可選，用於調試）
-                if hasattr(response, 'candidates') and len(response.candidates) > 0:
-                    for part in response.candidates[0].content.parts:
-                        if hasattr(part, 'thought') and part.thought and part.text:
-                            print(f"LLM {self.color.value} Thinking: {part.text[:200]}...")
+                # if hasattr(response, 'candidates') and len(response.candidates) > 0:
+                #     for part in response.candidates[0].content.parts:
+                #         if hasattr(part, 'thought') and part.thought and part.text:
+                #             print(f"LLM {self.color.value} Thinking: {part.text[:200]}...")
                             
             else:
                 # 舊版模型使用簡化配置
@@ -760,6 +760,8 @@ class LLMPlayer(Player):
                 )
             
             llm_response_text = response.text
+            llm_response_text = llm_response_text.split("\n")[-1]
+            
             if llm_response_text is None:
                 print(f"LLM {self.color.value}: Received empty response from API. Defaulting to random action.")
                 return random.choice(playable_actions)
