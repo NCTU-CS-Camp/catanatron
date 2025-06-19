@@ -2,7 +2,7 @@
 
 # 默認配置
 DEFAULT_PLAYERS=4
-DEFAULT_MODEL="gemini-2.5-flash-preview-04-17"
+DEFAULT_MODEL="gemini-2.5-flash"
 DEFAULT_CONTAINER="catanatron-websocketllm-1"
 
 # 解析命令行參數
