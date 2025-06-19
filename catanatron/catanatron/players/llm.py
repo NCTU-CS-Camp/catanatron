@@ -172,8 +172,7 @@ class LLMPlayer(Player):
             else:
                 for node_id, (owner_color, b_type) in board.buildings.items():
                     b_name = "SETTLEMENT" if b_type == SETTLEMENT else "CITY"
-                    node_c = board.map.nodes[node_id].coordinate
-                    prompt_lines.append(f"  Node {node_id} (Coord: {node_c}):")
+                    prompt_lines.append(f"  Node {node_id}:")
                     prompt_lines.append(f"    {b_name} owned by {owner_color.value}")
 
             prompt_lines.append("\nRoads:")
@@ -507,7 +506,7 @@ class LLMPlayer(Player):
                     action_priority = "🔥🔥 高優先級"
                 elif action.action_type == ActionType.BUILD_ROAD:
                     action_priority = "🔥 中等優先級"
-                elif action.action_type == ActionType.DOMESTIC_TRADE:
+                elif action.action_type == ActionType.OFFER_TRADE:
                     if not can_build_settlement and not can_build_city:
                         action_priority = "🔥🔥 高優先級(獲得建造資源)"
                     else:
@@ -527,26 +526,28 @@ class LLMPlayer(Player):
                         val_str = f"在節點 {action.value} 建造城市"
                     elif action.action_type == ActionType.BUILD_ROAD:
                         val_str = f"在 {action.value} 建造道路"
-                    elif action.action_type == ActionType.DOMESTIC_TRADE and \
+                    elif action.action_type == ActionType.OFFER_TRADE and \
                          hasattr(action, 'value') and action.value:
-                        if len(action.value) >= 4:
-                            off_res = [RESOURCES[r] for r in action.value[0]]
-                            ask_res = [RESOURCES[r] for r in action.value[1]]
-                            partner = action.value[2]
+                        if len(action.value) >= 10:
+                            # OFFER_TRADE uses 10-tuple format: first 5 are offered, last 5 are asked
+                            offered_resources = []
+                            asked_resources = []
                             
-                            partner_str = ""
-                            if hasattr(partner, 'value'):
-                                partner_str = f" 與 {partner.value}"
-                            elif partner is not None:
-                                partner_str = f" 與 {partner}"
-                                
-                            confirm_partner_str = (
-                                partner_str if action.action_type ==
-                                ActionType.CONFIRM_TRADE else ''
-                            )
-                            offer_details = f"提供:[{', '.join(off_res)}]"
-                            ask_details = f"要求:[{', '.join(ask_res)}]"
-                            val_str = f"{offer_details}, {ask_details}{confirm_partner_str}"
+                            # Extract offered resources (first 5 indices)
+                            for i in range(5):
+                                count = action.value[i]
+                                if count > 0:
+                                    offered_resources.extend([RESOURCES[i]] * count)
+                            
+                            # Extract asked resources (last 5 indices)
+                            for i in range(5):
+                                count = action.value[5 + i]
+                                if count > 0:
+                                    asked_resources.extend([RESOURCES[i]] * count)
+                            
+                            offer_details = f"提供:[{', '.join(offered_resources)}]"
+                            ask_details = f"要求:[{', '.join(asked_resources)}]"
+                            val_str = f"{offer_details}, {ask_details}"
                     elif action.action_type == ActionType.MARITIME_TRADE and \
                          action.value and len(action.value) == 2:
                         give_res_idx = action.value[0]
@@ -673,6 +674,10 @@ class LLMPlayer(Player):
             return f"{action.action_type.name}: {str(action.value)}"
 
     def _parse_llm_response(self, response_text: str, playable_actions: list[Action]) -> Action | None:
+        if response_text is None:
+            print("LLM response was None. Defaulting to random valid action.")
+            return random.choice(playable_actions) if playable_actions else None
+            
         try:
             chosen_index = int(response_text.strip())
             if 0 <= chosen_index < len(playable_actions):
@@ -720,7 +725,7 @@ class LLMPlayer(Player):
         try:
             print(f"LLMAgent for {self.color.value}: Sending prompt to Gemini model {self.model_name}...")
             # print complete prompt for debugging
-            print(prompt)
+            # print(prompt)
             # 配置 thinking 功能（僅支援 2.5 系列模型）
             if "2.5" in self.model_name or "gemini-2.5" in self.model_name:
                 # 使用 thinking 功能的配置
@@ -733,7 +738,7 @@ class LLMPlayer(Player):
                             include_thoughts=True  # 包含思考過程
                         ),
                         temperature=0.7,
-                        max_output_tokens=150
+                        max_output_tokens=4096
                     )
                 )
                 
@@ -755,6 +760,9 @@ class LLMPlayer(Player):
                 )
             
             llm_response_text = response.text
+            if llm_response_text is None:
+                print(f"LLM {self.color.value}: Received empty response from API. Defaulting to random action.")
+                return random.choice(playable_actions)
             print(f"LLM {self.color.value}: RX response: '{llm_response_text}'")
             
         except Exception as e:
