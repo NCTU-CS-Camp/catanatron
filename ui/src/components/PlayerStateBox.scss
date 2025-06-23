@@ -38,7 +38,7 @@
     background-position: center;
   }
   .wheat-cards {
-    background-image: url('card/wheat.svg'); //調整圖片路徑
+    background-image: url('card/wheat.jpg'); //調整圖片路徑
     background-size: cover;
     background-position: center;
   }
@@ -73,9 +73,27 @@
   padding: variables.$sm-gutter;
 
   max-width: variables.$sm-breakpoint;
-  margin: 0 auto;
-  width: 100%;
+  margin: 8px 12px;//auto
+  width: calc(100% - 24px);//100%;
 
+    // 添加半透明卡片效果
+  background: rgba(255, 255, 255, 1);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(5px);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:first-child {
+    margin-top: 12px;
+  }
+  //
   .scores {
     display: flex;
     justify-content: space-between;

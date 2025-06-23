@@ -44,45 +44,45 @@ function DrawerContent() {
   // 道具卡規則
   const devCardRules = [
     {
-      name: "騎士卡 (Knight)",
+      name: "騎士卡",
       desc: "移動強盜，並可偷取一名相鄰玩家的資源。"
     },
     {
-      name: "壟斷卡 (Monopoly)",
+      name: "壟斷卡",
       desc: "宣告一種資源，所有其他玩家必須交出該資源給你。"
     },
     {
-      name: "豐饒之年 (Year of Plenty)",
+      name: "豐饒之年",
       desc: "從資源堆獲得任意兩種資源，也可以都選同種資源。"
     },
     {
-      name: "道路建設 (Road Building)",
+      name: "道路建設",
       desc: "免費建造兩條道路。"
     },
     {
-      name: "勝利點 (Victory Point)",
+      name: "勝利點",
       desc: "立即獲得一分，無需公開。"
     }
   ];
 
   const devBuildsRules = [
     {
-      name: "購買發展卡 (Buy Development Card)",
+      name: "購買發展卡",
       desc: "移動強盜，並可偷取一名相鄰玩家的資源。",
-      cost: "所需資源：1個木材 + 1個磚頭 + 1個羊毛"
+      cost: "所需資源：1個羊毛 + 1個小麥 + 1個礦石"
     },
     {
-      name: "建造城市 (Build City)",
+      name: "建造城市",
       desc: "將一個村莊升級為城市，獲得額外資源。",
       cost: "所需資源：2個小麥 + 3個礦石"
     },
     {
-      name: "建造村莊 (Build Settlement)",
+      name: "建造村莊",
       desc: "在交叉點建造一個村莊，獲得資源。",
       cost: "所需資源：1個木材 + 1個磚頭 + 1個羊毛 + 1個小麥"
     },
     {
-      name: "建造道路 (Build Road)",
+      name: "建造道路",
       desc: "在邊界上建造一條道路，連接兩個交叉點。",
       cost: "所需資源：1個木材 + 1個磚頭"
     }

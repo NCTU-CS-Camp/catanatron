@@ -5,11 +5,11 @@ $dark-divider: rgb(0 0 0 / 80%);
 .right-drawer {
   .MuiDrawer-paper {
     width: 280px;
-    background: variables.$dark-gray;
-    color: white;
+    background: #edededcc;//variables.$dark-gray;//background color
+    color: rgb(31, 22, 22);//text color
   }
 
-  .MuiDivider-root {
+  .MuiDivider-root {//分隔線
     background: $dark-divider;
   }
 
@@ -59,7 +59,7 @@ $dark-divider: rgb(0 0 0 / 80%);
           flex-grow: 1;
           height: 20px;
           margin: 0 12px;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(245, 0, 0, 0.1);
           border-radius: 4px;
           overflow: hidden;
           position: relative;

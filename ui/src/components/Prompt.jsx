@@ -27,7 +27,7 @@ function getShortTileString(tileTile) {
 // 控制log輸出
 export function humanizeAction(gameState, action) {
   const botColors = gameState.bot_colors;
-  const player = botColors.includes(action[0]) ? "BOT" : "YOU";
+  const player = botColors.includes(action[0]) ? "電腦" : "你";
   switch (action[1]) {
     case "ROLL":
       return `${player} 骰了 ${action[2][0] + action[2][1]}`;
@@ -69,12 +69,58 @@ export function humanizeAction(gameState, action) {
       return `${player} 出了道路建設卡`
     }
     case "PLAY_MONOPOLY": {
-      return `${player} 出了壟斷卡，壟斷了 ${action[2]}`;
+       let Resource = null;
+      switch (action[2]) {
+        case "WOOD":
+          Resource = "木頭"; break;
+        case "BRICK":
+          Resource = "磚頭"; break;
+        case "SHEEP":
+          Resource = "羊毛"; break;
+        case "WHEAT":
+          Resource = "小麥"; break;
+        case "ORE":
+          Resource = "礦石"; break;
+        default :
+          Resource = null;
+      }
+      return `${player} 出了壟斷卡，壟斷了 ${Resource}`;
     }
     case "PLAY_YEAR_OF_PLENTY": {
-      const firstResource = action[2][0];
-      const secondResource = action[2][1];
-      if (secondResource) {
+      let firstResource = null;
+      let secondResource = null;
+      switch (action[2][0]) {
+        case "WOOD":
+          firstResource = "木頭"; break;
+        case "BRICK":
+          firstResource = "磚頭"; break;
+        case "SHEEP":
+          firstResource = "羊毛"; break;
+        case "WHEAT":
+          firstResource = "小麥"; break;
+        case "ORE":
+          firstResource = "礦石"; break;
+        default :
+          firstResource = null;
+      }
+
+      switch (action[2][1]) {
+        case "WOOD":
+          secondResource = "木頭"; break;
+        case "BRICK":
+          secondResource = "磚頭"; break;
+        case "SHEEP":
+          secondResource = "羊毛"; break;
+        case "WHEAT":
+          secondResource = "小麥"; break;
+        case "ORE":
+          secondResource = "礦石"; break;
+        default :
+          secondResource = null;
+      }
+      //const firstResource = first;
+      //const secondResource = second;
+      if (secondResource != null) {
         return `${player} 出了豐饒之年卡，獲得了 ${firstResource} 和 ${secondResource}`;
       } else {
         return `${player} 出了豐饒之年卡，獲得了 ${firstResource}`;
@@ -122,7 +168,8 @@ export default function Prompt({ gameState, isBotThinking }) {
   if (isBotThinking) {
     // Do nothing, but still render.
   } else if (gameState.winning_color) {
-    prompt = `遊戲結束 恭喜, ${gameState.winning_color}!`;
+    prompt = `遊戲結束 恭喜, ${gameState.winning_color}勝利!`;
+    return <div className="prompt-fin">{prompt}</div>;
   } else if (isPlayersTurn(gameState)) {
     prompt = humanizePrompt(gameState.current_prompt);
   } else {

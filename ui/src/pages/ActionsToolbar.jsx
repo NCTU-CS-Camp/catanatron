@@ -107,22 +107,22 @@ function PlayButtons() {
   }, [gameId, dispatch, enqueueSnackbar, closeSnackbar, humanColor]);
   const useItems = [
     {
-      label: "Monopoly",
+      label: "壟斷卡",
       disabled: !playableDevCardTypes.has("PLAY_MONOPOLY"),
       onClick: setIsPlayingMonopoly,
     },
     {
-      label: "Year of Plenty",
+      label: "豐饒之年卡",
       disabled: !playableDevCardTypes.has("PLAY_YEAR_OF_PLENTY"),
       onClick: setIsPlayingYearOfPlenty,
     },
     {
-      label: "Road Building",
+      label: "道路建設卡",
       disabled: !playableDevCardTypes.has("PLAY_ROAD_BUILDING"),
       onClick: playRoadBuilding,
     },
     {
-      label: "Knight",
+      label: "騎士卡",
       disabled: !playableDevCardTypes.has("PLAY_KNIGHT_CARD"),
       onClick: playKnightCard,
     },
@@ -179,6 +179,7 @@ function PlayButtons() {
   const tradeActions = state.gameState.current_playable_actions.filter(
     (action) => action[1] === "MARITIME_TRADE"
   );
+  
   const tradeItems = React.useMemo(() => {
     const items = tradeActions.map((action) => {
       const label = humanizeTradeAction(action);
@@ -201,6 +202,7 @@ function PlayButtons() {
   return (
     <>
       <OptionsButton
+        className="play-dev-card-btn"
         disabled={playableDevCardTypes.size === 0 || isPlayingDevCard}
         menuListId="use-menu-list"
         icon={<SimCardIcon />}
@@ -209,6 +211,7 @@ function PlayButtons() {
         使用
       </OptionsButton>
       <OptionsButton
+        className="build-btn"
         disabled={buildActionTypes.size === 0 || isPlayingDevCard}
         menuListId="build-menu-list"
         icon={<BuildIcon />}
@@ -217,6 +220,7 @@ function PlayButtons() {
         買卡/建設
       </OptionsButton>
       <OptionsButton
+        className="trade-btn"
         disabled={tradeItems.length === 0 || isPlayingDevCard}
         menuListId="trade-menu-list"
         icon={<AccountBalanceIcon />}
