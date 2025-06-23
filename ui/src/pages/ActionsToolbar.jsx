@@ -179,6 +179,7 @@ function PlayButtons() {
   const tradeActions = state.gameState.current_playable_actions.filter(
     (action) => action[1] === "MARITIME_TRADE"
   );
+  
   const tradeItems = React.useMemo(() => {
     const items = tradeActions.map((action) => {
       const label = humanizeTradeAction(action);

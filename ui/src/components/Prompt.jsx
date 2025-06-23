@@ -27,7 +27,7 @@ function getShortTileString(tileTile) {
 // 控制log輸出
 export function humanizeAction(gameState, action) {
   const botColors = gameState.bot_colors;
-  const player = botColors.includes(action[0]) ? "BOT" : "YOU";
+  const player = botColors.includes(action[0]) ? "電腦" : "你";
   switch (action[1]) {
     case "ROLL":
       return `${player} 骰了 ${action[2][0] + action[2][1]}`;
