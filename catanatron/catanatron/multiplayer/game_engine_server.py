@@ -14,7 +14,6 @@ import argparse
 from aiohttp import web
 import aiohttp_cors
 
-# 添加資料庫同步功能
 import os
 import sys
 sys.path.append('/app')
@@ -30,10 +29,8 @@ from catanatron.models.player import Color, Player
 from catanatron.models.actions import Action, generate_playable_actions
 from catanatron.json import GameEncoder, action_from_json
 
-# 設定日誌，避免重複配置
 logger = logging.getLogger(__name__)
 
-# 確保只配置一次日誌
 root_logger = logging.getLogger()
 if not root_logger.handlers:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -47,17 +44,14 @@ class PlayerConnection:
     port: int
     connected: bool = True
 
-# 創建一個代理玩家類，用於網路遊戲
 class NetworkPlayer(Player):
-    """代理玩家，用於網路遊戲中的遠程玩家"""
+    """Network proxy player for remote players"""
     def __init__(self, color: Color):
-        # 正確初始化 Player 基類
         super().__init__(color=color, is_bot=True)
         logger.info(f"Created NetworkPlayer for {color.value}")
     
     def decide(self, game, playable_actions):
-        # 這個方法不會被直接調用，因為決策通過網路處理
-        # 返回第一個可用行動作為後備方案
+        # This method won't be called directly since decisions are handled via network
         logger.info(f"NetworkPlayer.decide called for {self.color.value} with {len(playable_actions)} actions")
         return playable_actions[0] if playable_actions else None
 
@@ -101,30 +95,25 @@ class GameEngineServer:
         self.websocket_game_id = "websocket_multiplayer_game"  # 固定的遊戲 ID
 
     async def sync_game_to_database(self):
-        """將 WebSocket 遊戲狀態同步到資料庫"""
+        """Sync WebSocket game state to database"""
         if not self.database_sync_enabled or not self.game:
             return
             
         try:
-            # 為 WebSocket 遊戲設定固定的 ID
             original_id = self.game.id
             self.game.id = self.websocket_game_id
             
-            # 使用資料庫會話
             with database_session() as session:
-                # 創建遊戲狀態記錄
                 game_state = GameState.from_game(self.game)
                 session.add(game_state)
                 session.commit()
                 
                 logger.info(f"Synced WebSocket game state to database: turn {self.game.state.num_turns}")
             
-            # 恢復原始 ID
             self.game.id = original_id
             
         except Exception as e:
             logger.error(f"Failed to sync game state to database: {e}")
-            # 不影響遊戲繼續進行
 
     async def start_all_servers(self):
         """啟動所有端口的 WebSocket 服務器和 HTTP 狀態 API"""
@@ -376,9 +365,6 @@ class GameEngineServer:
                 self.game.execute(action)
                 logger.info(f"Player {color.value} executed action: {action}")
                 
-                # 廣播遊戲狀態更新
-                await self.broadcast_game_state()
-                
                 # 檢查遊戲是否結束
                 winner = self.game.winning_color()
                 if winner:
@@ -578,9 +564,6 @@ class GameEngineServer:
                 }
             })
             
-            # 廣播初始遊戲狀態
-            await self.broadcast_game_state()
-            
             # 請求第一個玩家行動
             await self.request_next_player_action()
 
@@ -687,111 +670,12 @@ class GameEngineServer:
             logger.error(f"Error requesting next player action: {e}")
             traceback.print_exc()
 
-    async def broadcast_game_state(self):
-        """廣播遊戲狀態給所有玩家"""
-        if not self.game:
-            return
-            
-        try:
-            # 同步遊戲狀態到資料庫
-            await self.sync_game_to_database()
-            
-            # 為每個玩家發送個性化的遊戲狀態
-            for color in self.player_connections:
-                filtered_game_state = self.filter_game_state_for_player(self.game, color)
-                game_state_json = json.dumps(filtered_game_state, cls=GameEncoder)
-                message = {
-                    'type': 'game_state_update',
-                    'game_state': game_state_json,
-                    'current_player': self.game.state.current_color().value,
-                    'debug_info': {
-                        'current_prompt': str(self.game.state.current_prompt),
-                        'actions_count': len(self.game.state.playable_actions),
-                        'filtered_for': color.value
-                    }
-                }
-                
-                # 記錄發送給用戶之前的JSON內容
-                # logger.info(f"Sending to {color.value}: {json.dumps(message, ensure_ascii=False)}")
-                
-                await self.send_to_player(color, message)
-        except Exception as e:
-            logger.error(f"Error broadcasting game state: {e}")
-            traceback.print_exc()
 
-    def filter_game_state_for_player(self, game, target_color: Color):
-        """為特定玩家過濾遊戲狀態，隱藏其他玩家的隱私資訊"""
-        # 深拷貝遊戲物件以避免修改原始物件
-        import copy
-        filtered_game = copy.deepcopy(game)
-        
-        if not hasattr(filtered_game.state, 'player_state') or not filtered_game.state.player_state:
-            return filtered_game
-        
-        # 定義需要隱藏的隱私資訊字段
-        private_fields = [
-            '_WOOD_IN_HAND',
-            '_BRICK_IN_HAND', 
-            '_SHEEP_IN_HAND',
-            '_WHEAT_IN_HAND',
-            '_ORE_IN_HAND',
-            '_KNIGHT_IN_HAND',
-            '_YEAR_OF_PLENTY_IN_HAND',
-            '_MONOPOLY_IN_HAND', 
-            '_ROAD_BUILDING_IN_HAND',
-            '_VICTORY_POINT_IN_HAND'
-        ]
-        
-        # 獲取玩家索引
-        colors = filtered_game.state.colors
-        target_player_index = None
-        for i, color in enumerate(colors):
-            if color == target_color:
-                target_player_index = i
-                break
-        
-        if target_player_index is None:
-            logger.warning(f"Player color {target_color.value} not found in game colors")
-            return filtered_game
-        
-        logger.info(f"Filtering for player {target_color.value} (P{target_player_index})")
-        
-        # 過濾 player_state 中的隱私資訊
-        filtered_player_state = {}
-        original_count = len(filtered_game.state.player_state)
-        private_kept = 0
-        private_removed = 0
-        
-        for key, value in filtered_game.state.player_state.items():
-            # 檢查這個 key 是否包含隱私資訊
-            is_private = any(private_field in key for private_field in private_fields)
-            
-            if is_private:
-                # 檢查這個 key 是否屬於目標玩家
-                if key.startswith(f'P{target_player_index}_'):
-                    # 保留自己的隱私資訊
-                    filtered_player_state[key] = value
-                    private_kept += 1
-                else:
-                    # 完全不加入其他玩家的隱私資訊
-                    private_removed += 1
-                    logger.debug(f"Removed private field: {key}")
-                    # 不加入 filtered_player_state
-            else:
-                # 公開資訊保留給所有玩家
-                filtered_player_state[key] = value
-        
-        logger.info(f"Filter results for {target_color.value}: Original={original_count}, Final={len(filtered_player_state)}, Private kept={private_kept}, Private removed={private_removed}")
-        
-        # 記錄過濾後的隱私字段
-        private_fields_in_result = [key for key in filtered_player_state.keys() if any(pf in key for pf in private_fields)]
-        logger.info(f"Private fields remaining for {target_color.value}: {private_fields_in_result}")
-        
-        filtered_game.state.player_state = filtered_player_state
-        return filtered_game
+
+
 
     async def broadcast_game_end(self, winner: Color):
-        """廣播遊戲結束"""
+        """Broadcast game end to all players"""
         message = {
             'type': 'game_end',
             'winner': winner.value,
@@ -802,7 +686,7 @@ class GameEngineServer:
         logger.info(f"Game ended! Winner: {winner.value}")
 
     async def send_to_player(self, color: Color, message: dict):
-        """發送訊息給特定玩家"""
+        """Send message to specific player"""
         if color not in self.player_connections:
             logger.warning(f"Player {color.value} not connected")
             return
@@ -821,7 +705,7 @@ class GameEngineServer:
             logger.error(f"Error sending message to {color.value}: {e}")
 
     async def broadcast_to_all(self, message: dict):
-        """廣播訊息給所有玩家"""
+        """Broadcast message to all players"""
         for color in self.player_connections:
             await self.send_to_player(color, message)
     
@@ -833,7 +717,7 @@ class GameEngineServer:
         return 0
     
     def get_websocket_status(self):
-        """取得 WebSocket 連接狀態資訊"""
+        """Get WebSocket connection status information"""
         status = {
             "websocket_game_engine": {
                 "status": "running",
@@ -921,7 +805,7 @@ class GameEngineServer:
         return status
     
     async def handle_status_request(self, request):
-        """處理 HTTP 狀態請求"""
+        """Handle HTTP status requests"""
         try:
             status = self.get_websocket_status()
             return web.json_response(status)
@@ -933,7 +817,7 @@ class GameEngineServer:
             }, status=500)
     
     async def handle_game_state_request(self, request):
-        """處理完整遊戲狀態請求"""
+        """Handle full game state requests"""
         try:
             if not self.game:
                 return web.json_response({
@@ -977,7 +861,7 @@ class GameEngineServer:
             }, status=500)
 
     async def start_http_server(self):
-        """啟動 HTTP 狀態 API 服務器"""
+        """Start HTTP status API server"""
         app = web.Application()
         
         # 設定 CORS
@@ -1006,41 +890,40 @@ class GameEngineServer:
         
         return runner
 
-# 啟動服務器
 async def main():
-    """主函數，支援命令列參數設定玩家數量"""
-    parser = argparse.ArgumentParser(description='Catanatron 多人遊戲伺服器')
+    """Main function with command line arguments for player settings"""
+    parser = argparse.ArgumentParser(description='Catanatron Multiplayer Game Server')
     parser.add_argument('--min-players', type=int, default=2, 
-                       help='最少玩家數量 (預設: 2)')
+                       help='Minimum number of players (default: 2)')
     parser.add_argument('--max-players', type=int, default=4, 
-                       help='最多玩家數量 (預設: 4)')
+                       help='Maximum number of players (default: 4)')
     parser.add_argument('--wait-time', type=int, default=30,
-                       help='達到最少玩家數後等待時間(秒) (預設: 30)')
+                       help='Wait time after min players reached (default: 30)')
     parser.add_argument('--host', type=str, default="0.0.0.0",
-                       help='伺服器主機地址 (預設: 0.0.0.0)')
+                       help='Server host address (default: 0.0.0.0)')
     
     args = parser.parse_args()
     
-    # 驗證參數
+    # Validate arguments
     if args.min_players < 2:
-        print("錯誤：最少玩家數量必須至少為 2")
+        print("Error: Minimum players must be at least 2")
         return
     if args.max_players > 4:
-        print("錯誤：最多玩家數量不能超過 4 (顏色限制)")
+        print("Error: Maximum players cannot exceed 4 (color limitation)")
         return
     if args.min_players > args.max_players:
-        print("錯誤：最少玩家數量不能大於最多玩家數量")
+        print("Error: Minimum players cannot be greater than maximum players")
         return
     
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║                    Catanatron 多人遊戲伺服器                    ║
+║                  Catanatron Multiplayer Server                ║
 ╠══════════════════════════════════════════════════════════════╣
-║  設定:                                                        ║
-║    最少玩家數量: {args.min_players:<2}                                           ║
-║    最多玩家數量: {args.max_players:<2}                                           ║
-║    等待時間: {args.wait_time:<3} 秒                                        ║
-║    主機地址: {args.host:<15}                                    ║
+║  Configuration:                                              ║
+║    Min players: {args.min_players:<2}                                             ║
+║    Max players: {args.max_players:<2}                                             ║
+║    Wait time: {args.wait_time:<3} seconds                                     ║
+║    Host: {args.host:<15}                                         ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
     
@@ -1050,32 +933,31 @@ async def main():
         max_players=args.max_players
     )
     
-    # 設定等待時間
     server.waiting_time = args.wait_time
     
-    print("正在啟動伺服器...")
-    print(f"玩家可以連接到以下端口:")
+    print("Starting server...")
+    print(f"Players can connect to the following ports:")
     
     colors = ["RED", "BLUE", "WHITE", "ORANGE"]
     for i in range(args.max_players):
         port = 8001 + i
         color = colors[i]
-        print(f"  端口 {port}: {color} 玩家")
+        print(f"  Port {port}: {color} player")
     
-    print(f"\n遊戲規則:")
-    print(f"  - 至少需要 {args.min_players} 個玩家才能開始遊戲")
-    print(f"  - 最多支援 {args.max_players} 個玩家")
-    print(f"  - 達到最少玩家數後，等待 {args.wait_time} 秒或直到滿員")
-    print(f"  - 玩家可以隨時加入，直到達到最大數量\n")
+    print(f"\nGame rules:")
+    print(f"  - Need at least {args.min_players} players to start")
+    print(f"  - Maximum {args.max_players} players supported")
+    print(f"  - After min players join, wait {args.wait_time} seconds or until full")
+    print(f"  - Players can join anytime until maximum reached\n")
     
     try:
         await server.start_all_servers()
     except KeyboardInterrupt:
-        print("\n正在關閉伺服器...")
+        print("\nShutting down server...")
         for server_instance in server.servers.values():
             server_instance.close()
             await server_instance.wait_closed()
-        print("伺服器已關閉")
+        print("Server shutdown complete")
 
 if __name__ == "__main__":
     try:
