@@ -33,9 +33,17 @@ const resourceMap = {
   ORE: "礦石"
 };
 
+const playerMap = {
+  RED: "紅色玩家",
+  BLUE: "藍色玩家",
+  ORANGE: "橙色玩家",
+  WHITE: "白色玩家",
+}
+
 export function humanizeAction(gameState, action) {
-  const botColors = gameState.bot_colors;
-  const player = botColors.includes(action[0]) ? "電腦" : "你";
+  // const botColors = gameState.bot_colors;
+  // const player = botColors.includes(action[0]) ? "電腦" : "你";
+  const player = playerMap[action[0]] || action[0];
   switch (action[1]) {
     case "ROLL":
       return `${player} 骰了 ${action[2][0] + action[2][1]}`;
@@ -105,6 +113,17 @@ export function humanizeAction(gameState, action) {
     }
     case "END_TURN":
       return `${player} 結束回合`;
+    case "OFFER_TRADE":
+      return `${player} 提出了貿易`;
+    case "ACCEPT_TRADE":
+      return `${player} 願意貿易`;
+    case "REJECT_TRADE":
+      return `${player} 拒絕了本次貿易`;
+    case "CONFIRM_TRADE":
+      const player2Color = playerMap[action[2][10]] || action[2][10];
+      return `${player} 確認了 ${player2Color} 提出的貿易`;
+    case "CANCEL_TRADE":
+      return `${player} 取消了本次貿易`;
     default:
       return `${player} ${action.slice(1)}`;
   }
