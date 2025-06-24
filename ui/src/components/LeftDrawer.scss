@@ -29,4 +29,17 @@ $dark-divider: rgb(0 0 0 / 80%);
       padding: variables.$sm-gutter;
     }
   }
+
+  .log .RED{
+    color: variables.$red;
+  }
+  .log .BLUE{
+    color: variables.$blue;
+  }
+  .log .ORANGE{
+    color: variables.$orange;
+  }
+  .log .WHITE{
+    color: variables.$white;
+  }
 }

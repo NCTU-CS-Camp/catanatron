@@ -1,6 +1,7 @@
 import axios from "axios";
 
 import { API_URL } from "../configuration";
+import { WEBSOCKET_ENGINE_URL } from "../configuration";
 
 type Player = "HUMAN" | "RANDOM" | "CATANATRON";
 type StateIndex = number | "latest";
@@ -109,7 +110,7 @@ export async function getDetailedWebSocketGame() {
 export async function getWebSocketGameState() {
   try {
     // 直接從 WebSocket 引擎獲取完整遊戲狀態
-    const response = await axios.get("http://localhost:8100/game-state");
+    const response = await axios.get(`${WEBSOCKET_ENGINE_URL}/game-state`);
     return response.data.game_state; // 返回實際的遊戲狀態數據
   } catch (error) {
     console.error("Failed to get WebSocket game state:", error);
@@ -132,7 +133,7 @@ export async function getWebSocketGameState() {
 // WebSocket 狀態檢查
 export async function checkWebSocketEngineStatus() {
   try {
-    const response = await axios.get("http://localhost:8100/status");
+    const response = await axios.get(`${WEBSOCKET_ENGINE_URL}/status`);
     return response.data;
   } catch (error) {
     console.error("WebSocket engine not available:", error);

@@ -111,3 +111,16 @@
     font-weight: bold;
   }
 }
+
+.RED .scores > div {
+    color: variables.$red;
+}
+.BLUE .scores > div {
+    color: variables.$blue;
+}
+.ORANGE .scores > div {
+    color: variables.$orange;
+}
+.WHITE .scores > div {
+    color: variables.$white;
+}
