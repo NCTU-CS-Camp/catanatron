@@ -69,7 +69,7 @@ export function ResourceCards({ playerState, playerKey }) {
       )}
       {amount("YEAR_OF_PLENTY") !== 0 && (
         <div
-          className="dev-cards center-text card"
+          className="year-of-plenty-cards center-text card"
           title={amount("YEAR_OF_PLENTY") + " Year of Plenty Card(s)"}
         >
           <Paper>
@@ -80,7 +80,7 @@ export function ResourceCards({ playerState, playerKey }) {
       )}
       {amount("ROAD_BUILDING") !== 0 && (
         <div
-          className="dev-cards center-text card"
+          className="road-cards center-text card"
           title={amount("ROAD_BUILDING") + " Road Building Card(s)"}
         >
           <Paper>
