@@ -19,28 +19,55 @@ def longest_roads_by_player(state):
     return result
 
 
-def action_from_json(data):
-    color = Color[data[0]]
-    action_type = ActionType[data[1]]
-    if action_type == ActionType.BUILD_ROAD:
-        action = Action(color, action_type, tuple(data[2]))
-    elif action_type == ActionType.PLAY_YEAR_OF_PLENTY:
-        resources = tuple(data[2])
-        if len(resources) not in [1, 2]:
-            raise ValueError("Year of Plenty action must have 1 or 2 resources")
-        action = Action(color, action_type, resources)
-    elif action_type == ActionType.MOVE_ROBBER:
-        coordinate, victim, _ = data[2]
-        coordinate = tuple(coordinate)
-        victim = Color[victim] if victim else None
-        value = (coordinate, victim, None)
-        action = Action(color, action_type, value)
-    elif action_type == ActionType.MARITIME_TRADE:
-        value = tuple(data[2])
-        action = Action(color, action_type, value)
-    else:
-        action = Action(color, action_type, data[2])
-    return action
+def action_from_json(action_json):
+    """从JSON重建Action对象"""
+    from catanatron.models.actions import ActionType
+    from catanatron.models.player import Color
+    from catanatron.models.actions import Action
+    
+    try:
+        if isinstance(action_json, list) and len(action_json) >= 3:
+            color_str, action_type_str, value = action_json[:3]
+            
+            # 转换颜色
+            color = Color[color_str] if isinstance(color_str, str) else color_str
+            
+            # 转换行动类型  
+            action_type = ActionType[action_type_str] if isinstance(action_type_str, str) else action_type_str
+            
+            # 修复：将列表转换为元组
+            if isinstance(value, list):
+                if action_type == ActionType.MOVE_ROBBER and len(value) >= 2:
+                    # MOVE_ROBBER 特殊处理: (coordinate, victim, extra)
+                    coord = tuple(value[0]) if isinstance(value[0], list) else value[0]
+                    victim = Color[value[1]] if isinstance(value[1], str) and value[1] in ['RED', 'BLUE', 'WHITE', 'ORANGE'] else value[1]
+                    third = value[2] if len(value) > 2 else None
+                    value = (coord, victim, third)
+                elif action_type == ActionType.CONFIRM_TRADE and len(value) >= 11:
+                    # CONFIRM_TRADE 特殊处理：最后一个元素应该是 Color 对象
+                    processed_value = []
+                    for i, item in enumerate(value):
+                        if i == 10:  # 最后一个元素是接受者的颜色
+                            if isinstance(item, str) and item in ['RED', 'BLUE', 'WHITE', 'ORANGE']:
+                                processed_value.append(Color[item])
+                            else:
+                                processed_value.append(item)
+                        else:
+                            processed_value.append(item)
+                    value = tuple(processed_value)
+                else:
+                    # 其他行动类型统一转换为元组
+                    value = tuple(value)
+            
+            return Action(color, action_type, value)
+            
+        else:
+            raise ValueError(f"Invalid action_json format: {action_json}")
+            
+    except Exception as e:
+        print(f"Error in action_from_json: {e}")
+        print(f"   Input: {action_json}")
+        raise
 
 
 class GameEncoder(json.JSONEncoder):

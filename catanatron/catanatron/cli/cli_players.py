@@ -9,6 +9,7 @@ from catanatron.players.minimax import AlphaBetaPlayer, SameTurnAlphaBetaPlayer
 from catanatron.players.search import VictoryPointPlayer
 from catanatron.players.mcts import MCTSPlayer
 from catanatron.players.playouts import GreedyPlayoutsPlayer
+from catanatron.players.llm import LLMPlayer
 
 
 # Player must have a CODE, NAME, DESCRIPTION, CLASS.
@@ -63,6 +64,12 @@ CLI_PLAYERS = [
         "SameTurnAlphaBetaPlayer",
         "AlphaBeta but searches only within turn",
         SameTurnAlphaBetaPlayer,
+    ),
+    CliPlayer(
+        "LLM",
+        "LLMAgent",
+        "Decides according to the LLM. First param is MODEL_NAME, second is API_KEY.",
+        LLMPlayer,
     ),
 ]
 

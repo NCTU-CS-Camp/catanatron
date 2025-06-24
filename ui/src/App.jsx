@@ -40,6 +40,10 @@ function App() {
                 element={<GameScreen replayMode={true} />}
               />
               <Route
+                path="/games/websocket/:gameId"
+                element={<GameScreen replayMode={false} websocketMode={true} />}
+              />
+              <Route
                 path="/games/:gameId"
                 element={<GameScreen replayMode={false} />}
               />

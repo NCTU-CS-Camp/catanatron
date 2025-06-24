@@ -1,0 +1,27 @@
+# Build Command:
+# docker build -t bcollazo/catanatron-server:uv . -f Dockerfile.uv
+FROM python:3.12
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+WORKDIR /app
+
+# Copy pyproject.toml and other config files first for better caching
+COPY pyproject.toml ./
+COPY README.md ./
+
+# Copy source code
+COPY . .
+
+# Install dependencies using uv
+RUN uv sync --extra web
+
+EXPOSE 5001
+
+ENV FLASK_DEBUG=1
+ENV FLASK_APP=catanatron.web/catanatron.web
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_RUN_PORT=5001
+
+CMD uv run python start_server.py --min-players 3 --max-players 4 --wait-time 20 --host 0.0.0.0

@@ -1,6 +1,7 @@
 import axios from "axios";
 
 import { API_URL } from "../configuration";
+import { WEBSOCKET_ENGINE_URL } from "../configuration";
 
 type Player = "HUMAN" | "RANDOM" | "CATANATRON";
 type StateIndex = number | "latest";
@@ -70,5 +71,72 @@ export async function getMctsAnalysis(
       stack: error.stack,
     });
     throw error;
+  }
+}
+
+// WebSocket 遊戲相關 API
+export async function getGamesList() {
+  try {
+    const response = await axios.get(`${API_URL}/api/games/list`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get games list:", error);
+    throw error;
+  }
+}
+
+export async function getCurrentWebSocketGame() {
+  try {
+    const response = await axios.get(`${API_URL}/api/websocket-games/current`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get current WebSocket game:", error);
+    throw error;
+  }
+}
+
+export async function getDetailedWebSocketGame() {
+  try {
+    const response = await axios.get(
+      `${API_URL}/api/websocket-games/current/detailed`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get detailed WebSocket game:", error);
+    throw error;
+  }
+}
+
+export async function getWebSocketGameState() {
+  try {
+    // 直接從 WebSocket 引擎獲取完整遊戲狀態
+    const response = await axios.get(`${WEBSOCKET_ENGINE_URL}/game-state`);
+    return response.data.game_state; // 返回實際的遊戲狀態數據
+  } catch (error) {
+    console.error("Failed to get WebSocket game state:", error);
+    // 如果直接連接失敗，嘗試通過 Flask API 代理
+    try {
+      const fallbackResponse = await axios.get(
+        `${API_URL}/api/games/websocket/websocket_multiplayer_game/full-state`
+      );
+      return (
+        fallbackResponse.data.full_game_state ||
+        fallbackResponse.data.game_state
+      );
+    } catch (fallbackError) {
+      console.error("Fallback API also failed:", fallbackError);
+      throw error;
+    }
+  }
+}
+
+// WebSocket 狀態檢查
+export async function checkWebSocketEngineStatus() {
+  try {
+    const response = await axios.get(`${WEBSOCKET_ENGINE_URL}/status`);
+    return response.data;
+  } catch (error) {
+    console.error("WebSocket engine not available:", error);
+    return null;
   }
 }

@@ -25,9 +25,25 @@ function getShortTileString(tileTile) {
 }
 
 // 控制log輸出
+const resourceMap = {
+  WOOD: "木頭",
+  BRICK: "磚頭",
+  SHEEP: "羊毛",
+  WHEAT: "小麥",
+  ORE: "礦石"
+};
+
+const playerMap = {
+  RED: "紅色玩家",
+  BLUE: "藍色玩家",
+  ORANGE: "橙色玩家",
+  WHITE: "白色玩家",
+}
+
 export function humanizeAction(gameState, action) {
-  const botColors = gameState.bot_colors;
-  const player = botColors.includes(action[0]) ? "電腦" : "你";
+  // const botColors = gameState.bot_colors;
+  // const player = botColors.includes(action[0]) ? "電腦" : "你";
+  const player = playerMap[action[0]] || action[0];
   switch (action[1]) {
     case "ROLL":
       return `${player} 骰了 ${action[2][0] + action[2][1]}`;
@@ -69,57 +85,12 @@ export function humanizeAction(gameState, action) {
       return `${player} 出了道路建設卡`
     }
     case "PLAY_MONOPOLY": {
-       let Resource = null;
-      switch (action[2]) {
-        case "WOOD":
-          Resource = "木頭"; break;
-        case "BRICK":
-          Resource = "磚頭"; break;
-        case "SHEEP":
-          Resource = "羊毛"; break;
-        case "WHEAT":
-          Resource = "小麥"; break;
-        case "ORE":
-          Resource = "礦石"; break;
-        default :
-          Resource = null;
-      }
+      const Resource = resourceMap[action[2][0]] || action[2][0];
       return `${player} 出了壟斷卡，壟斷了 ${Resource}`;
     }
     case "PLAY_YEAR_OF_PLENTY": {
-      let firstResource = null;
-      let secondResource = null;
-      switch (action[2][0]) {
-        case "WOOD":
-          firstResource = "木頭"; break;
-        case "BRICK":
-          firstResource = "磚頭"; break;
-        case "SHEEP":
-          firstResource = "羊毛"; break;
-        case "WHEAT":
-          firstResource = "小麥"; break;
-        case "ORE":
-          firstResource = "礦石"; break;
-        default :
-          firstResource = null;
-      }
-
-      switch (action[2][1]) {
-        case "WOOD":
-          secondResource = "木頭"; break;
-        case "BRICK":
-          secondResource = "磚頭"; break;
-        case "SHEEP":
-          secondResource = "羊毛"; break;
-        case "WHEAT":
-          secondResource = "小麥"; break;
-        case "ORE":
-          secondResource = "礦石"; break;
-        default :
-          secondResource = null;
-      }
-      //const firstResource = first;
-      //const secondResource = second;
+      const firstResource = resourceMap[action[2][0]] || action[2][0];
+      const secondResource = resourceMap[action[2][1]] || action[2][1];
       if (secondResource != null) {
         return `${player} 出了豐饒之年卡，獲得了 ${firstResource} 和 ${secondResource}`;
       } else {
@@ -129,15 +100,30 @@ export function humanizeAction(gameState, action) {
     case "MOVE_ROBBER": {
       const tile = findTileByCoordinate(gameState, action[2][0]);
       const tileString = getTileString(tile);
-      const stolenResource = action[2][2] ? ` (得到了 ${action[2][2]})` : '';
-      return `${player} 偷了 ${tileString}${stolenResource}`;
+      const resource = action[2][2] ? resourceMap[action[2][2]] : "沒有資源";
+      if (action[2][1] != null) {
+        return `${player} 移動了強盜到 ${tileString}，偷取了一名玩家的 ${resource}`;
+      }else {
+        return `${player} 移動了強盜到 ${tileString}，沒有偷取任何資源`;
+      }
     }
     case "MARITIME_TRADE": {
       const label = humanizeTradeAction(action);
-      return `${player} 進行了海上貿易 ${label}`;
+      return `${player} 進行了貿易 ${label}`;
     }
     case "END_TURN":
       return `${player} 結束回合`;
+    case "OFFER_TRADE":
+      return `${player} 提出了貿易`;
+    case "ACCEPT_TRADE":
+      return `${player} 願意貿易`;
+    case "REJECT_TRADE":
+      return `${player} 拒絕了本次貿易`;
+    case "CONFIRM_TRADE":
+      const player2Color = playerMap[action[2][10]] || action[2][10];
+      return `${player} 確認了 ${player2Color} 提出的貿易`;
+    case "CANCEL_TRADE":
+      return `${player} 取消了本次貿易`;
     default:
       return `${player} ${action.slice(1)}`;
   }
@@ -145,7 +131,9 @@ export function humanizeAction(gameState, action) {
 
 export function humanizeTradeAction(action) {
   const out = action[2].slice(0, 4).filter((resource) => resource !== null);
-  return `${out.length} ${out[0]} => ${action[2][4]}`;
+  const fromResource = resourceMap[out[0]] || out[0];
+  const toResource = resourceMap[action[2][4]] || action[2][4];
+  return `${out.length} ${fromResource} => ${toResource}`;
 }
 
 function humanizePrompt(current_prompt) {

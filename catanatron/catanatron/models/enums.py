@@ -9,6 +9,24 @@ FastDevCard = Literal[
 ]
 FastBuildingType = Literal["SETTLEMENT", "CITY", "ROAD"]
 
+
+class Color(Enum):
+    RED = "RED"
+    BLUE = "BLUE"
+    ORANGE = "ORANGE"
+    WHITE = "WHITE"
+    # Add GREEN and BROWN if supporting 5-6 players
+    # GREEN = "GREEN"
+    # BROWN = "BROWN"
+
+
+class Resource(Enum):
+    WOOD = "WOOD"
+    BRICK = "BRICK"
+    SHEEP = "SHEEP"
+    WHEAT = "WHEAT"
+    ORE = "ORE"
+
 # Strings are considerably faster than Python Enum's (e.g. at being hashed).
 # TODO: Move to ints
 WOOD: Final = "WOOD"
@@ -97,7 +115,7 @@ class ActionType(Enum):
     # Values for all three is a 10-resource tuple, first 5 is offered freqdeck, last 5 is
     #   receiving freqdeck.
     OFFER_TRADE = "OFFER_TRADE"
-    ACCEPT_TRADE = "ACCEPT_TRADE"
+    ACCEPT_TRADE = "ACCEPT_TRADE"  
     REJECT_TRADE = "REJECT_TRADE"
     # CONFIRM_TRADE value is 11-tuple. first 10 as in OFFER_TRADE, last is color of accepting player
     CONFIRM_TRADE = "CONFIRM_TRADE"

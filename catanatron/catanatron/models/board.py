@@ -134,15 +134,18 @@ class Board:
                     self.connected_components[edge_color].append(c_nodeset)
 
                     # Update longest road by plowed player. Compare again with all
-                    self.road_lengths[edge_color] = max(
-                        *[
-                            len(longest_acyclic_path(self, component, edge_color))
-                            for component in self.connected_components[edge_color]
-                        ]
-                    )
-                    self.road_color, self.road_length = max(
-                        self.road_lengths.items(), key=lambda e: e[1]
-                    )
+                    component_lengths = [
+                        len(longest_acyclic_path(self, component, edge_color))
+                        for component in self.connected_components[edge_color]
+                    ]
+                    self.road_lengths[edge_color] = max(component_lengths) if component_lengths else 0
+                    # Recalculate global longest road across all colors
+                    if self.road_lengths:
+                        self.road_color, self.road_length = max(
+                            self.road_lengths.items(), key=lambda e: e[1]
+                        )
+                    else:
+                        self.road_color, self.road_length = None, 0
 
         self.board_buildable_ids.discard(node_id)
         for n in STATIC_GRAPH.neighbors(node_id):
@@ -199,10 +202,14 @@ class Board:
         b_index = self._get_connected_component_index(b, color)
 
         # Extend or merge components
-        if a_index is None and not self.is_enemy_node(a, color):
+        if a_index is None and b_index is None:
+            # Both nodes are not in any component - create new component
+            component = {a, b}
+            self.connected_components[color].append(component)
+        elif a_index is None and b_index is not None and not self.is_enemy_node(a, color):
             component = self.connected_components[color][b_index]
             component.add(a)
-        elif b_index is None and not self.is_enemy_node(b, color):
+        elif b_index is None and a_index is not None and not self.is_enemy_node(b, color):
             component = self.connected_components[color][a_index]
             component.add(b)
         elif a_index is not None and b_index is not None and a_index != b_index:
@@ -219,10 +226,14 @@ class Board:
             chosen_index = a_index if a_index is not None else b_index
             component = self.connected_components[color][chosen_index]
 
-        # find longest path on component under question
+        # find longest path across ALL components for this color
         previous_road_color = self.road_color
-        candidate_length = len(longest_acyclic_path(self, component, color))
-        self.road_lengths[color] = max(self.road_lengths[color], candidate_length)
+        all_component_lengths = [
+            len(longest_acyclic_path(self, comp, color))
+            for comp in self.connected_components[color]
+        ]
+        candidate_length = max(all_component_lengths) if all_component_lengths else 0
+        self.road_lengths[color] = candidate_length
         if candidate_length >= 5 and candidate_length > self.road_length:
             self.road_color = color
             self.road_length = candidate_length
@@ -242,7 +253,9 @@ class Board:
             return sorted(list(self.board_buildable_ids))
 
         subgraphs = self.find_connected_components(color)
-        nodes = set().union(*subgraphs)
+        nodes = set()
+        if subgraphs:  # 檢查是否有連接組件
+            nodes = set().union(*subgraphs)
         return sorted(list(nodes.intersection(self.board_buildable_ids)))
 
     def buildable_edges(self, color: Color):
@@ -257,7 +270,8 @@ class Board:
         # The 'expandable_nodes' set should only increase in size monotonically I think.
         # We can take advantage of that.
         expandable_nodes = set()
-        expandable_nodes = expandable_nodes.union(*self.connected_components[color])
+        if self.connected_components[color]:  # 檢查是否有連接組件
+            expandable_nodes = expandable_nodes.union(*self.connected_components[color])
 
         candidate_edges = self.buildable_subgraph.edges(expandable_nodes)
         for edge in candidate_edges:
@@ -377,4 +391,4 @@ def longest_acyclic_path(board: Board, node_set: Set[int], color: Color):
 
         paths.extend(paths_from_this_node)
 
-    return max(paths, key=len)
+    return max(paths, key=len) if paths else []

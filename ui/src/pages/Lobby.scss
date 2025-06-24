@@ -1,0 +1,281 @@
+.lobby-container {
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  // 確保滾動條樣式美觀
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .rotating {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  // 覆蓋 Material-UI 卡片樣式
+  .MuiCard-root {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // 狀態指示器樣式
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    &.online {
+      background-color: #e8f5e8;
+      color: #2e7d2e;
+    }
+
+    &.offline {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    &.loading {
+      background-color: #fff3e0;
+      color: #ef6c00;
+    }
+  }
+
+  // 遊戲卡片特殊樣式
+  .game-card {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .game-status {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+  }
+
+  // 使用說明區塊
+  .usage-guide {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+
+    code {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    }
+  }
+
+  // 詳細信息展示
+  .game-details {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+
+    // 自定義滾動條樣式
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+
+    pre {
+      margin: 0;
+      font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 8px;
+    }
+  }
+
+  // 響應式設計
+  @media (max-width: 768px) {
+    .lobby-container {
+      padding: 16px;
+    }
+
+    .MuiBox-root {
+      padding: 16px !important;
+    }
+
+    .MuiTypography-h4 {
+      font-size: 1.75rem;
+    }
+  }
+
+  // 載入動畫
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+
+    .MuiCircularProgress-root {
+      margin-bottom: 16px;
+    }
+  }
+
+  // 遊戲列表容器
+  .games-grid-container {
+    max-height: 500px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    }
+  }
+
+  // 按鈕樣式增強
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+
+    .MuiButton-root {
+      border-radius: 8px;
+      text-transform: none;
+      font-weight: 600;
+      padding: 8px 16px;
+
+      &.primary {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+
+        &:hover {
+          background: linear-gradient(45deg, #5a6fd8, #6a4190);
+        }
+      }
+    }
+  }
+
+  // 卡片內容間距調整
+  .MuiCardContent-root {
+    padding: 20px;
+
+    &:last-child {
+      padding-bottom: 20px;
+    }
+  }
+
+  // 警告和信息框樣式
+  .MuiAlert-root {
+    border-radius: 8px;
+
+    &.MuiAlert-standardSuccess {
+      background-color: #e8f5e8;
+      color: #1b5e1f;
+    }
+
+    &.MuiAlert-standardError {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    &.MuiAlert-standardInfo {
+      background-color: #e3f2fd;
+      color: #0d47a1;
+    }
+  }
+
+  // 確保所有滾動條都有統一樣式
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+  }
+
+  // Firefox 滾動條樣式
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+  }
+
+  // 修復手機端滾動問題
+  @media (max-width: 768px) {
+    .lobby-container {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .game-details,
+    .games-grid-container {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
