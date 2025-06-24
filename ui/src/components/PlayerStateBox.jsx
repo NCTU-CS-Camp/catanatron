@@ -36,7 +36,7 @@ export function ResourceCards({ playerState, playerKey }) {
       <div className="separator"></div>
       {amount("VICTORY_POINT") !== 0 && (
         <div
-          className="dev-cards center-text card"
+          className="dev-cards_VP center-text card"
           title={amount("VICTORY_POINT") + " Victory Point Card(s)"}
         >
           <Paper>
@@ -47,7 +47,7 @@ export function ResourceCards({ playerState, playerKey }) {
       )}
       {amount("KNIGHT") !== 0 && (
         <div
-          className="dev-cards center-text card"
+          className="dev-cards_KN center-text card"
           title={amount("KNIGHT") + " Knight Card(s)"}
         >
           <Paper>
@@ -58,7 +58,7 @@ export function ResourceCards({ playerState, playerKey }) {
       )}
       {amount("MONOPOLY") !== 0 && (
         <div
-          className="dev-cards center-text card"
+          className="dev-cards_MO center-text card"
           title={amount("MONOPOLY") + " Monopoly Card(s)"}
         >
           <Paper>
