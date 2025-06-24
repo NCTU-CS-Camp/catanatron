@@ -55,6 +55,9 @@ services:
       - server
   react-ui:
     build: ./ui
+    environment:
+      - CTRON_API_URL=http://${HOST}:5001
+      - CTRON_WEBSOCKET_ENGINE_URL=http://${HOST}:8100
     ports:
       - 3000:3000
     stdin_open: true
