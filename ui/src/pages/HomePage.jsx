@@ -91,9 +91,9 @@ export default function HomePage() {
             <Button
               variant="contained"
               color="secondary"
-              onClick={() => navigate("/lobby")}
+              onClick={() => navigate("/login")}
             >
-              線上對戰
+              登入
             </Button>
           </>
         ) : (
