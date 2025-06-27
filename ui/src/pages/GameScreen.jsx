@@ -298,15 +298,8 @@ function GameScreen({ replayMode, websocketMode = false }) {
 
   return (
     <main>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "16px",
-        }}
-      >
-        <h1 className="logo">卡坦島</h1>
+      <div className="logo-container">
+        <h1 className="logo">CS Camp Catan</h1>
       </div>
       <ZoomableBoard replayMode={replayMode} />
       {/* <ActionsToolbar

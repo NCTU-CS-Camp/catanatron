@@ -297,10 +297,17 @@ function DrawerContent() {
 
   return (
     <div className="prompt-sidebar">
+      
+      <Typography variant="h6" className="section-title">
+        Group Prompts
+      </Typography>
+
+      <Divider className="section-divider" />
+
       {/* Prompt Summary 區域 */}
       <div className="prompt-summary-section">
-        <Typography variant="h6" className="section-title">
-          Prompts 摘要
+        <Typography variant="h6" className="section-subtitle">
+          Summary
         </Typography>
         <div className="prompt-summary-box">
           {loading ? (
@@ -314,13 +321,12 @@ function DrawerContent() {
           )}
         </div>
       </div>
-
-      <Divider className="section-divider" />
+      
 
       {/* 群組 Prompt 列表區域 */}
       <div className="prompt-list-section">
-        <Typography variant="h6" className="list-header">
-          群組 Prompts
+        <Typography variant="h6" className="section-subtitle">
+          Individual
         </Typography>
         <div className="prompt-list-container">
           {loading ? (
