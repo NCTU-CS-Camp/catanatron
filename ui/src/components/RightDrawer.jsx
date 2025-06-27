@@ -274,7 +274,7 @@ function DrawerContent() {
 
   // Enter 鍵發送
   const handleKeyPress = (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       handleSendPrompt();
     }
