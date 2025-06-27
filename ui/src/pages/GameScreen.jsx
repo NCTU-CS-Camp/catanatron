@@ -185,21 +185,6 @@ function GameScreen({ replayMode, websocketMode = false }) {
             }}
           >
             <h1 className="logo">卡坦島</h1>
-            <span
-              style={{
-                background: "linear-gradient(45deg, #667eea, #764ba2)",
-                color: "white",
-                padding: "4px 12px",
-                borderRadius: "16px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              🔗 即時多人遊戲 (調試模式)
-            </span>
           </div>
 
           <div
@@ -322,23 +307,6 @@ function GameScreen({ replayMode, websocketMode = false }) {
         }}
       >
         <h1 className="logo">卡坦島</h1>
-        {isWebSocketGame && (
-          <span
-            style={{
-              background: "linear-gradient(45deg, #667eea, #764ba2)",
-              color: "white",
-              padding: "4px 12px",
-              borderRadius: "16px",
-              fontSize: "12px",
-              fontWeight: "bold",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            🔗 即時多人遊戲
-          </span>
-        )}
       </div>
       <ZoomableBoard replayMode={replayMode} />
       <ActionsToolbar

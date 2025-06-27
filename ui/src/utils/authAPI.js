@@ -1,12 +1,12 @@
 // API 基礎設定
-const API_BASE_URL = 'http://172.18.10.216:8000';
+const API_BASE_URL = "http://172.18.8.215:8000";
 
 // 登入獲取 Token
 export const loginAPI = async (username, password) => {
   const response = await fetch(`${API_BASE_URL}/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+    method: "POST",
+    headers: {  
+      "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
       username: username,
@@ -16,7 +16,7 @@ export const loginAPI = async (username, password) => {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.detail || '登入失敗');
+    throw new Error(errorData.detail || "登入失敗");
   }
 
   return await response.json();
@@ -25,15 +25,15 @@ export const loginAPI = async (username, password) => {
 // 獲取當前用戶資訊
 export const getCurrentUser = async (accessToken) => {
   const response = await fetch(`${API_BASE_URL}/users/me/`, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
-    throw new Error('取得用戶資訊失敗');
+    throw new Error("取得用戶資訊失敗");
   }
 
   return await response.json();
@@ -51,17 +51,17 @@ export const validateToken = async (accessToken) => {
 
 // 登出（清除本地資料）
 export const logout = () => {
-  localStorage.removeItem('user');
-  window.location.href = '/login';
+  localStorage.removeItem("user");
+  window.location.href = "/login";
 };
 
 // 獲取儲存的用戶資訊
 export const getStoredUser = () => {
   try {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
   } catch (error) {
-    console.error('解析用戶資料失敗:', error);
+    console.error("解析用戶資料失敗:", error);
     return null;
   }
 };
@@ -81,14 +81,14 @@ export const getAuthHeader = () => {
 // 通用的 API 請求函數（自動帶入 Token）
 export const authenticatedFetch = async (url, options = {}) => {
   const authHeader = getAuthHeader();
-  
+
   if (!authHeader) {
-    throw new Error('未登入，請先登入');
+    throw new Error("未登入，請先登入");
   }
 
   const defaultHeaders = {
-    'Content-Type': 'application/json',
-    'Authorization': authHeader,
+    "Content-Type": "application/json",
+    Authorization: authHeader,
   };
 
   const finalOptions = {
@@ -104,7 +104,7 @@ export const authenticatedFetch = async (url, options = {}) => {
   // 如果是 401 錯誤，可能是 Token 過期
   if (response.status === 401) {
     logout(); // 自動登出
-    throw new Error('登入已過期，請重新登入');
+    throw new Error("登入已過期，請重新登入");
   }
 
   return response;
