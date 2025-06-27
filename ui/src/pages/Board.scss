@@ -97,6 +97,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  .settlement{
+    background-image: url("src/test.png"); // 圖片應放在 public/test.png
+    background-size: contain; // 完整顯示圖片
+    background-repeat: no-repeat; // 不重複
+    background-position: center; // 置中
+  }
 }
 .settlement {
   width: 80%;
