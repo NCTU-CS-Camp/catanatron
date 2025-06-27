@@ -25,7 +25,7 @@ const getAuthToken = () => {
 };
 
 // API 基礎配置
-const API_BASE_URL = '172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
+const API_BASE_URL = 'http://172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
 
 // 創建帶認證的 fetch 函數
 const authFetch = async (url, options = {}) => {
@@ -63,7 +63,7 @@ const authFetch = async (url, options = {}) => {
 // 根據實際 API 規範的函數
 const getGroupSummary = async (groupId) => {
   try {
-    const data = await authFetch(`/groups/${groupId}/summary`);
+    const data = await authFetch(`/groups/${groupId}`);
     return {
       success: true,
       summary: data.summary_prompt || "暫無摘要"
@@ -124,32 +124,12 @@ const createPrompt = async (promptData) => {
   }
 };
 
-// // 獲取當前用戶資訊
-// const getCurrentUser = async () => {
-//   try {
-//     const current_user = 
-//     return {
-//       success: true,
-//       user: {
-//         username: current_user.username,
-//         id: current_user.id,
-//         group_id: current_user.group_id
-//       }
-//     }
-//   } catch (error) {
-//     console.error('獲取用戶資訊失敗:', error);
-//     return {
-//       success: false,
-//       error: error.message
-//     };
-//   }
-// };
-
 function DrawerContent() {
-  const { groupId } = useParams(); // 從 URL 獲取 groupId 而不是 gameId
+  // const { groupId } = useParams(); // 從 URL 獲取 groupId 而不是 gameId
   const { state } = useContext(store);
   // console.log('test')
   
+
   // 狀態管理
   const [promptSummary, setPromptSummary] = useState("");
   const [promptsByUser, setPromptsByUser] = useState({}); // {userId: {content, updatedAt}}
@@ -159,30 +139,35 @@ function DrawerContent() {
   const [sendingPrompt, setSendingPrompt] = useState(false);
   const [error, setError] = useState(null);
 
+  // 獲取 groupId 的函數
+  const getGroupId = () => {
+    if (currentUser?.group_id) {
+      return currentUser.group_id;
+    }
+    try {
+      const user = getStoredUser();
+      return user?.group_id;
+    } catch (error) {
+      console.error('無法獲取 group_id:', error);
+      return null;
+    }
+  };
+
   // 載入當前用戶資訊
   useEffect(() => {
     const loadCurrentUser = async () => {
-      // 先嘗試從 localStorage 獲取
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
         try {
           setCurrentUser(JSON.parse(savedUser));
           return;
         } catch (e) {
-          // localStorage 數據損壞，清除並重新獲取
           localStorage.removeItem('currentUser');
         }
       }
 
-      // 從 API 獲取用戶資訊
-      // const result = await getCurrentUser();
-      // if (result.success) {
-      //   setCurrentUser(result.user);
-      //   localStorage.setItem('currentUser', JSON.stringify(result.user));
-      // } else {
-      //   console.error('無法獲取用戶資訊:', result.error);
-      //   setError('無法獲取用戶資訊');
-      // }
+      const user = getStoredUser();
+      setCurrentUser(user);
     };
 
     if (getAuthToken()) {
@@ -190,42 +175,41 @@ function DrawerContent() {
     }
   }, []);
 
-  // 載入數據
+  // 載入數據 - 修改依賴
   useEffect(() => {
-    console.log(groupId, currentUser);
+    const groupId = getGroupId();
+    console.log('groupId from storage:', groupId, 'currentUser:', currentUser);
     if (groupId && currentUser) {
-      loadPromptData();
+      loadPromptData(groupId); // 傳入 groupId
     }
-  }, [groupId, currentUser]);
+  }, [currentUser]);
 
-  // 定期刷新其他用戶的 prompts（每10秒）
+  // 定期刷新 - 修改依賴
   useEffect(() => {
+    const groupId = getGroupId();
     if (!groupId || !currentUser) return;
     
     const interval = setInterval(() => {
-      loadPromptData();
+      loadPromptData(groupId); // 傳入 groupId
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [groupId, currentUser]);
+  }, [currentUser]);
 
-  const loadPromptData = async () => {
+  const loadPromptData = async (groupId) => {
     if (!groupId) return;
     
     try {
       setLoading(true);
       setError(null);
       
-      // 載入群組摘要
       const summaryResult = await getGroupSummary(groupId);
       if (summaryResult.success) {
         setPromptSummary(summaryResult.summary);
       }
       
-      // 載入群組中所有用戶的 prompts
       const promptsResult = await getGroupPrompts(groupId);
       if (promptsResult.success) {
-        // 轉換為以 userId 為 key 的對象
         const promptsMap = {};
         promptsResult.prompts.forEach(item => {
           promptsMap[item.userId] = {
@@ -244,9 +228,20 @@ function DrawerContent() {
     }
   };
 
-  // 發送當前用戶的 prompt
+  // 修改 handleSendPrompt 函數
   const handleSendPrompt = async () => {
-    if (!newPrompt.trim() || !groupId || sendingPrompt || !currentUser) return;
+    const groupId = getGroupId(); // 動態獲取 groupId
+    
+    console.log('=== Debug Info ===');
+    console.log('newPrompt:', newPrompt);
+    console.log('groupId from storage:', groupId);
+    console.log('currentUser:', currentUser);
+    console.log('sendingPrompt:', sendingPrompt);
+    
+    if (!newPrompt.trim() || !groupId || sendingPrompt || !currentUser) {
+      console.log('Early return - conditions not met');
+      return;
+    }
     
     try {
       setSendingPrompt(true);
@@ -255,8 +250,9 @@ function DrawerContent() {
       const result = await createPrompt(newPrompt.trim());
       
       if (result.success) {
+        console.log("Successfully create prompt");
+        console.log(result.data);
         setNewPrompt("");
-        // 立即更新本地狀態
         setPromptsByUser(prev => ({
           ...prev,
           [result.data.userId]: {
@@ -394,7 +390,7 @@ function DrawerContent() {
             placeholder="輸入你的 prompt..."
             value={newPrompt}
             onChange={(e) => setNewPrompt(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             disabled={sendingPrompt || !currentUser}
             variant="outlined"
             size="small"
