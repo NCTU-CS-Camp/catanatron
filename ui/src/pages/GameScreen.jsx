@@ -309,10 +309,10 @@ function GameScreen({ replayMode, websocketMode = false }) {
         <h1 className="logo">卡坦島</h1>
       </div>
       <ZoomableBoard replayMode={replayMode} />
-      <ActionsToolbar
+      {/* <ActionsToolbar
         isBotThinking={isBotThinking}
         replayMode={replayMode || isWebSocketGame}
-      />
+      /> */}
       <LeftDrawer />
       <RightDrawer />
     </main>
