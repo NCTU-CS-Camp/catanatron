@@ -50,7 +50,7 @@ export default function HomePage() {
       <div className="switchable">
         {!loading ? (
           <>
-            <div className="player-count-selector">
+            {/* <div className="player-count-selector">
               <div className="player-count-label">Number of Players</div>
               <div className="player-count-buttons">
                 {[2, 3, 4].map((value) => (
@@ -87,13 +87,13 @@ export default function HomePage() {
               onClick={() => handleCreateGame(GameMode.CATANATRON_BOTS)}
             >
               觀戰
-            </Button>
+            </Button> */}
             <Button
               variant="contained"
               color="secondary"
-              onClick={() => navigate("/lobby")}
+              onClick={() => navigate("/login")}
             >
-              線上對戰
+              登入
             </Button>
           </>
         ) : (

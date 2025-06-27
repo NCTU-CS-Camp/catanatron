@@ -7,6 +7,8 @@ import Fade from "@mui/material/Fade";
 import GameScreen from "./pages/GameScreen";
 import HomePage from "./pages/HomePage";
 import Lobby from "./pages/Lobby";
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { StateProvider } from "./store";
 
 import "./App.scss";
@@ -37,17 +39,37 @@ function App() {
             <Routes>
               <Route
                 path="/games/:gameId/states/:stateIndex"
-                element={<GameScreen replayMode={true} />}
+                element={
+                  <ProtectedRoute>
+                    <GameScreen replayMode={true} />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/games/websocket/:gameId"
-                element={<GameScreen replayMode={false} websocketMode={true} />}
+                element={
+                  <ProtectedRoute>
+                    <GameScreen replayMode={false} websocketMode={true} />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/games/:gameId"
-                element={<GameScreen replayMode={false} />}
+                element={
+                  <ProtectedRoute>
+                    <GameScreen replayMode={false} />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/lobby" element={<Lobby />} />
+              <Route 
+                path="/lobby" 
+                element={
+                  <ProtectedRoute>
+                    <Lobby />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="/login" element={<LoginPage />} />
               <Route path="/" exact={true} element={<HomePage />} />
             </Routes>
           </Router>

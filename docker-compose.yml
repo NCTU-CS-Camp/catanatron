@@ -53,11 +53,11 @@ services:
       - .:/app
     depends_on:
       - server
-  # react-ui:
-  #   build: ./ui
-  #   ports:
-  #     - 3000:3000
-  #   stdin_open: true
-  #   volumes:
-  #     - /app/node_modules
-  #     - ./ui:/app
+  react-ui:
+    build: ./ui
+    ports:
+      - 3000:3000
+    stdin_open: true
+    volumes:
+      - /app/node_modules
+      - ./ui:/app
