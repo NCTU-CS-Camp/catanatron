@@ -46,7 +46,7 @@ export function humanizeAction(gameState, action) {
   const player = playerMap[action[0]] || action[0];
   switch (action[1]) {
     case "ROLL":
-      return `${player} 骰了 ${action[2][0] + action[2][1]}`;
+      return [`${player}`,` 骰了 ${action[2][0] + action[2][1]}`];
     case "DISCARD":
       return `${player} 丢棄了資源`;
     case "BUY_DEVELOPMENT_CARD":
@@ -65,7 +65,7 @@ export function humanizeAction(gameState, action) {
       const tileId = action[2];
       const tiles = gameState.adjacent_tiles[tileId];
       const tileString = tiles.map(getShortTileString).join("-");
-      return `${player} 在 ${tileString} 建造了城市`;
+      return [`${player}`,` 在 ${tileString} 建造了城市`];
     }
     case "BUILD_ROAD": {
       const edge = action[2];

@@ -6,6 +6,7 @@ import Drawer from "@mui/material/Drawer";
 
 import Hidden from "./Hidden";
 import PlayerStateBox from "./PlayerStateBox";
+import PlayerAvatar from "./PlayerAvatar";
 import { humanizeAction } from "./Prompt";
 import { store } from "../store";
 import ACTIONS from "../actions";
@@ -27,7 +28,7 @@ function DrawerContent({ gameState }) {
       </React.Fragment>
     );
   });
-
+  const currentPlayer = gameState.current_color;
   return (
     <>
       {playerSections}
@@ -37,7 +38,12 @@ function DrawerContent({ gameState }) {
           .reverse()
           .map((action, i) => (
             <div key={i} className={cn("action foreground", action[0])}>
-              {humanizeAction(gameState, action)}
+              <div className="action-content">
+                <PlayerAvatar color={action[0]} size="small" />
+                <span className="action-text">
+                  {humanizeAction(gameState, action)}
+                </span>
+              </div>
             </div>
           ))}
       </div>
