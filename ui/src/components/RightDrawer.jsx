@@ -319,7 +319,7 @@ function DrawerContent() {
 
       {/* 群組 Prompt 列表區域 */}
       <div className="prompt-list-section">
-        <Typography variant="subtitle1" className="list-header">
+        <Typography variant="h6" className="list-header">
           群組 Prompts
         </Typography>
         <div className="prompt-list-container">
@@ -341,7 +341,7 @@ function DrawerContent() {
                     <div className="prompt-content">
                       <div className="user-info">
                         <Typography variant="body2" className="user-name">
-                          用戶 {userId} {isCurrentUser && '(你)'}
+                          用戶 {userId} {isCurrentUser && '(你)'} 
                         </Typography>
                         <Typography variant="caption" className="update-time">
                           {formatTime(promptData.updatedAt)}
