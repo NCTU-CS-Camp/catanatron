@@ -23,7 +23,7 @@ const getAuthToken = () => {
 };
 
 // API 基礎配置
-const API_BASE_URL = ''; // 如果需要的話，設置你的 API 基礎 URL
+const API_BASE_URL = '172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
 
 // 創建帶認證的 fetch 函數
 const authFetch = async (url, options = {}) => {
@@ -300,7 +300,7 @@ function DrawerContent() {
       {/* Prompt Summary 區域 */}
       <div className="prompt-summary-section">
         <Typography variant="h6" className="section-title">
-          群組摘要
+          Prompts 摘要
         </Typography>
         <div className="prompt-summary-box">
           {loading ? (
