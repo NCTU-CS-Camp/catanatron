@@ -1,0 +1,93 @@
+@use "../variables.scss";
+
+.player-avatar-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+
+  .player-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    .avatar-icon {
+      font-size: inherit;
+      line-height: 1;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    }
+
+    // 顏色變體 - 提供備用樣式
+    &.red {
+      border-color: rgba(211, 47, 47, 0.6);
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+    }
+
+    &.blue {
+      border-color: rgba(25, 118, 210, 0.6);
+      background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    }
+
+    &.orange {
+      border-color: rgba(245, 124, 0, 0.6);
+      background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+    }
+
+    &.white {
+      border-color: rgba(97, 97, 97, 0.6);
+      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+    }
+
+    // 懸停效果
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  .player-name {
+    font-size: 0.75em;
+    font-weight: 500;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  // 大小變體
+  &.small {
+    .player-avatar {
+      width: 22px;
+      height: 22px;
+      font-size: 10px;
+    }
+    .player-name {
+      font-size: 0.7em;
+    }
+  }
+
+  &.medium {
+    .player-avatar {
+      width: 30px;
+      height: 30px;
+      font-size: 14px;
+    }
+    .player-name {
+      font-size: 0.8em;
+    }
+  }
+
+  &.large {
+    .player-avatar {
+      width: 38px;
+      height: 38px;
+      font-size: 18px;
+    }
+    .player-name {
+      font-size: 0.9em;
+    }
+  }
+}
