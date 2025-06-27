@@ -45,26 +45,34 @@ $dark-divider: rgb(0 0 0 / 80%);
       .action-content {
         display: flex;
         align-items: center;
+        gap: 4px;
+        
+        .player-name {
+          font-weight: bold;
+          font-size: 0.9em;
+          margin-right: 4px;
+          
+          &.RED {
+            color: variables.$red;
+          }
+          &.BLUE {
+            color: variables.$blue;
+          }
+          &.ORANGE {
+            color: variables.$orange;
+          }
+          &.WHITE {
+            color: variables.$white;
+          }
+        }
         
         .action-text {
           flex: 1;
           line-height: 1.3;
           font-size: 0.95em;
+          color: #333;
         }
       }
     }
-  }
-
-  .log .RED{
-    color: variables.$red;
-  }
-  .log .BLUE{
-    color: variables.$blue;
-  }
-  .log .ORANGE{
-    color: variables.$orange;
-  }
-  .log .WHITE{
-    color: variables.$white;
   }
 }

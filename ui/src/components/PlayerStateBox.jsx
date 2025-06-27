@@ -3,6 +3,7 @@ import cn from "classnames";
 
 import "./PlayerStateBox.scss";
 import { Paper } from "@mui/material";
+import PlayerAvatar from "./PlayerAvatar";
 
 export function ResourceCards({ playerState, playerKey }) {
   const amount = (card) => playerState[`${playerKey}_${card}_IN_HAND`];
@@ -97,6 +98,10 @@ export default function PlayerStateBox({ playerState, playerKey, color }) {
   const actualVps = playerState[`${playerKey}_ACTUAL_VICTORY_POINTS`];
   return (
     <div className={cn("player-state-box foreground", color)}>
+      <div className="player-section-header">
+        <PlayerAvatar color={color} size="small" />
+        <span className="player-title">{playerState[`${playerKey}_NAME`]}</span>
+      </div>
       <ResourceCards playerState={playerState} playerKey={playerKey} />
       <div className="scores">
         <div

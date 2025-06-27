@@ -46,18 +46,18 @@ export function humanizeAction(gameState, action) {
   const player = playerMap[action[0]] || action[0];
   switch (action[1]) {
     case "ROLL":
-      return [`${player}`,` 骰了 ${action[2][0] + action[2][1]}`];
+      return [player, `骰了 ${action[2][0] + action[2][1]}`];
     case "DISCARD":
-      return `${player} 丢棄了資源`;
+      return [player, `丢棄了資源`];
     case "BUY_DEVELOPMENT_CARD":
-      return `${player} 購買了發展卡`;
+      return [player, `購買了發展卡`];
     case "BUILD_SETTLEMENT":{
       const parts = action[1].split("_");
       const building = parts[parts.length - 1];
       const tileId = action[2];
       const tiles = gameState.adjacent_tiles[tileId];
       const tileString = tiles.map(getShortTileString).join("-");
-      return `${player} 在 ${tileString} 建造了村莊`;
+      return [player, `在 ${tileString} 建造了村莊`];
     }
     case "BUILD_CITY": {
       const parts = action[1].split("_");
@@ -65,7 +65,7 @@ export function humanizeAction(gameState, action) {
       const tileId = action[2];
       const tiles = gameState.adjacent_tiles[tileId];
       const tileString = tiles.map(getShortTileString).join("-");
-      return [`${player}`,` 在 ${tileString} 建造了城市`];
+      return [player, `在 ${tileString} 建造了城市`];
     }
     case "BUILD_ROAD": {
       const edge = action[2];
@@ -76,25 +76,25 @@ export function humanizeAction(gameState, action) {
         (tileId) => findTileById(gameState, tileId).tile
       );
       const edgeString = tiles.map(getShortTileString).join("-");
-      return `${player} 在 ${edgeString} 建造了道路`;
+      return [player, `在 ${edgeString} 建造了道路`];
     }
     case "PLAY_KNIGHT_CARD": {
-      return `${player} 出了騎士卡`;
+      return [player, `出了騎士卡`];
     }
     case "PLAY_ROAD_BUILDING": {
-      return `${player} 出了道路建設卡`
+      return [player, `出了道路建設卡`];
     }
     case "PLAY_MONOPOLY": {
       const Resource = resourceMap[action[2]] || action[2];
-      return `${player} 出了壟斷卡，壟斷了 ${Resource}`;
+      return [player, `出了壟斷卡，壟斷了 ${Resource}`];
     }
     case "PLAY_YEAR_OF_PLENTY": {
       const firstResource = resourceMap[action[2][0]] || action[2][0];
       const secondResource = resourceMap[action[2][1]] || action[2][1];
       if (secondResource != null) {
-        return `${player} 出了豐饒之年卡，獲得了 ${firstResource} 和 ${secondResource}`;
+        return [player, `出了豐饒之年卡，獲得了 ${firstResource} 和 ${secondResource}`];
       } else {
-        return `${player} 出了豐饒之年卡，獲得了 ${firstResource}`;
+        return [player, `出了豐饒之年卡，獲得了 ${firstResource}`];
       }
     }
     case "MOVE_ROBBER": {
@@ -103,36 +103,36 @@ export function humanizeAction(gameState, action) {
       const resource = action[2][2] ? resourceMap[action[2][2]] : "沒有資源";
       const enemy = action[2][1] ? playerMap[action[2][1]] : "沒有玩家";
       if (action[2][1] != null) {
-        return `${player} 移動了強盜到 ${tileString}，偷取了 ${enemy} 的 ${resource}`;
+        return [player, `移動了強盜到 ${tileString}，偷取了 ${enemy} 的 ${resource}`];
       }else {
-        return `${player} 移動了強盜到 ${tileString}，沒有偷取任何資源`;
+        return [player, `移動了強盜到 ${tileString}，沒有偷取任何資源`];
       }
     }
     case "MARITIME_TRADE": {
       const [label,type] = humanizeTradeAction(action);
       if (type === "bank") {
-        return `${player} 進行了銀行貿易 ${label}`;
+        return [player, `進行了銀行貿易 ${label}`];
       }else{
-        return `${player} 進行了海上貿易 ${label}`;
+        return [player, `進行了海上貿易 ${label}`];
       }
       
     }
     case "END_TURN":
-      return `${player} 結束回合`;
+      return [player, `結束回合`];
     case "OFFER_TRADE":
       const [resource_INFO1, resource_INFO2] = trade_log(action);
-      return `${player} 提出交易: ${resource_INFO1.join(", ")} 換 ${resource_INFO2.join(", ")}`;
+      return [player, `提出交易: ${resource_INFO1.join(", ")} 換 ${resource_INFO2.join(", ")}`];
     case "ACCEPT_TRADE":
-      return `${player} 願意貿易`;
+      return [player, `願意貿易`];
     case "REJECT_TRADE":
-      return `${player} 拒絕了本次貿易`;
+      return [player, `拒絕了本次貿易`];
     case "CONFIRM_TRADE":
       const player2Color = playerMap[action[2][10]] || action[2][10];
-      return `${player} 確認了 ${player2Color} 提出的貿易`;
+      return [player, `確認了 ${player2Color} 提出的貿易`];
     case "CANCEL_TRADE":
-      return `${player} 取消了本次貿易`;
+      return [player, `取消了本次貿易`];
     default:
-      return `${player} ${action.slice(1)}`;
+      return [player, `${action.slice(1)}`];
   }
 }
 function trade_log(action){
