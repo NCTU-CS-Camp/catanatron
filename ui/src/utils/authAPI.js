@@ -1,9 +1,5 @@
 // API 基礎設定
-<<<<<<< HEAD
-const API_BASE_URL = 'http://172.18.8.215:8000';
-=======
 const API_BASE_URL = "http://172.18.8.215:8000";
->>>>>>> 9ff00ae574081d8a38ed8108107429995398f8e5
 
 // 登入獲取 Token
 export const loginAPI = async (username, password) => {
