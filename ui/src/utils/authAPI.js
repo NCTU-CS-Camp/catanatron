@@ -109,3 +109,14 @@ export const authenticatedFetch = async (url, options = {}) => {
 
   return response;
 };
+
+export const getGroupAvatar = async (groupId) => {
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
+  
+  if (!response.ok) {
+    throw new Error(`無法獲取群組頭像: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data.avatar_url;
+};
