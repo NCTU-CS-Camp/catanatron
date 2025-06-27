@@ -133,7 +133,25 @@
   &:first-child {
     margin-top: 12px;
   }
-  //
+
+  // 玩家標題區塊
+  .player-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    
+    .player-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+  }
+
   .scores {
     display: flex;
     justify-content: space-between;
@@ -152,15 +170,51 @@
   }
 }
 
-.RED .scores > div {
+// 玩家顏色樣式
+.RED {
+  .scores > div {
     color: variables.$red;
+  }
+  .player-section-header {
+    border-left: 4px solid variables.$red;
+    .player-title {
+      color: variables.$red;
+    }
+  }
 }
-.BLUE .scores > div {
+
+.BLUE {
+  .scores > div {
     color: variables.$blue;
+  }
+  .player-section-header {
+    border-left: 4px solid variables.$blue;
+    .player-title {
+      color: variables.$blue;
+    }
+  }
 }
-.ORANGE .scores > div {
+
+.ORANGE {
+  .scores > div {
     color: variables.$orange;
+  }
+  .player-section-header {
+    border-left: 4px solid variables.$orange;
+    .player-title {
+      color: variables.$orange;
+    }
+  }
 }
-.WHITE .scores > div {
+
+.WHITE {
+  .scores > div {
     color: variables.$white;
+  }
+  .player-section-header {
+    border-left: 4px solid variables.$white;
+    .player-title {
+      color: variables.$white;
+    }
+  }
 }

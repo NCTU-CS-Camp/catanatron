@@ -28,7 +28,7 @@ function DrawerContent({ gameState }) {
       </React.Fragment>
     );
   });
-  const currentPlayer = gameState.current_color;
+
   return (
     <>
       {playerSections}
@@ -36,16 +36,22 @@ function DrawerContent({ gameState }) {
         {gameState.actions
           .slice()
           .reverse()
-          .map((action, i) => (
-            <div key={i} className={cn("action foreground", action[0])}>
-              <div className="action-content">
-                <PlayerAvatar color={action[0]} size="small" />
-                <span className="action-text">
-                  {humanizeAction(gameState, action)}
-                </span>
+          .map((action, i) => {
+            const [currentPlayer, text] = humanizeAction(gameState, action);
+            return (
+              <div key={i} className={cn("action foreground", action[0])}>
+                <div className="action-content">
+                  <PlayerAvatar color={action[0]} size="small" />
+                  <span className={cn("player-name foreground", action[0])}>
+                    {currentPlayer}
+                  </span>
+                  <span className="action-text">
+                    {text}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </>
   );
