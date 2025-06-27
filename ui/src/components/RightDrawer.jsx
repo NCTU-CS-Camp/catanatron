@@ -1,155 +1,414 @@
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useState, useEffect } from "react";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
-import { CircularProgress, Button } from "@mui/material";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import { getMctsAnalysis } from "../utils/apiClient";
+import { 
+  CircularProgress, 
+  TextField, 
+  IconButton,
+  Typography
+} from "@mui/material";
+import SendIcon from "@mui/icons-material/Send";
 import { useParams } from "react-router";
 
 import Hidden from "./Hidden";
 import { store } from "../store";
 import ACTIONS from "../actions";
+import {getStoredUser} from "../utils/authAPI"
 
 import "./RightDrawer.scss";
 
+// 獲取存儲的 token
+const getAuthToken = () => {
+  const user = getStoredUser();
+  return user.access_token;
+};
+
+// API 基礎配置
+const API_BASE_URL = 'http://172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
+
+// 創建帶認證的 fetch 函數
+const authFetch = async (url, options = {}) => {
+  const token = getAuthToken();
+  
+  if (!token) {
+    throw new Error('未登入');
+  }
+
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${url}`, config);
+  
+  if (response.status === 401) {
+    // Token 可能過期，清除本地存儲
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('currentUser');
+    throw new Error('登入已過期，請重新登入');
+  }
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return response.json();
+};
+
+// 根據實際 API 規範的函數
+const getGroupSummary = async (groupId) => {
+  try {
+    const data = await authFetch(`/groups/${groupId}`);
+    return {
+      success: true,
+      summary: data.summary_prompt || "暫無摘要"
+    };
+  } catch (error) {
+    console.error('獲取群組摘要失敗:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+const getGroupPrompts = async (groupId) => {
+  try {
+    const prompts = await authFetch(`/prompts/group/${groupId}`);
+    return {
+      success: true,
+      prompts: prompts.map(prompt => ({
+        userId: prompt.user_id,
+        content: prompt.data,
+        updatedAt: prompt.timestamp,
+        id: prompt.id
+      }))
+    };
+  } catch (error) {
+    console.error('獲取群組 prompts 失敗:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+const createPrompt = async (promptData) => {
+  try {
+    const data = await authFetch('/prompts/', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: promptData
+      })
+    });
+    return {
+      success: true,
+      data: {
+        userId: data.user_id,
+        content: data.data,
+        updatedAt: data.timestamp,
+        id: data.id
+      }
+    };
+  } catch (error) {
+    console.error('創建 prompt 失敗:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 function DrawerContent() {
-  const { gameId } = useParams();
+  // const { groupId } = useParams(); // 從 URL 獲取 groupId 而不是 gameId
   const { state } = useContext(store);
-  const [mctsResults, setMctsResults] = useState(null);
+  // console.log('test')
+  
+
+  // 狀態管理
+  const [promptSummary, setPromptSummary] = useState("");
+  const [promptsByUser, setPromptsByUser] = useState({}); // {userId: {content, updatedAt}}
+  const [currentUser, setCurrentUser] = useState(null);
+  const [newPrompt, setNewPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendingPrompt, setSendingPrompt] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleAnalyzeClick = async () => {
-    if (!gameId || !state.gameState || state.gameState.winning_color) return;
+  // 獲取 groupId 的函數
+  const getGroupId = () => {
+    if (currentUser?.group_id) {
+      return currentUser.group_id;
+    }
+    try {
+      const user = getStoredUser();
+      return user?.group_id;
+    } catch (error) {
+      console.error('無法獲取 group_id:', error);
+      return null;
+    }
+  };
 
+  // 載入當前用戶資訊
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
+          setCurrentUser(JSON.parse(savedUser));
+          return;
+        } catch (e) {
+          localStorage.removeItem('currentUser');
+        }
+      }
+
+      const user = getStoredUser();
+      setCurrentUser(user);
+    };
+
+    if (getAuthToken()) {
+      loadCurrentUser();
+    }
+  }, []);
+
+  // 載入數據 - 修改依賴
+  useEffect(() => {
+    const groupId = getGroupId();
+    console.log('groupId from storage:', groupId, 'currentUser:', currentUser);
+    if (groupId && currentUser) {
+      loadPromptData(groupId); // 傳入 groupId
+    }
+  }, [currentUser]);
+
+  // 定期刷新 - 修改依賴
+  useEffect(() => {
+    const groupId = getGroupId();
+    if (!groupId || !currentUser) return;
+    
+    const interval = setInterval(() => {
+      loadPromptData(groupId); // 傳入 groupId
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  const loadPromptData = async (groupId) => {
+    if (!groupId) return;
+    
     try {
       setLoading(true);
       setError(null);
-      const result = await getMctsAnalysis(gameId);
-      if (result.success) {
-        setMctsResults(result.probabilities);
-      } else {
-        setError(result.error || "Analysis failed");
+      
+      const summaryResult = await getGroupSummary(groupId);
+      if (summaryResult.success) {
+        setPromptSummary(summaryResult.summary);
+      }
+      
+      const promptsResult = await getGroupPrompts(groupId);
+      if (promptsResult.success) {
+        const promptsMap = {};
+        promptsResult.prompts.forEach(item => {
+          promptsMap[item.userId] = {
+            content: item.content,
+            updatedAt: item.updatedAt,
+            id: item.id
+          };
+        });
+        setPromptsByUser(promptsMap);
       }
     } catch (err) {
-      console.error("MCTS Analysis failed:", err);
+      console.error("Failed to load prompt data:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-  // Analyze
 
-  // 道具卡規則
-  const devCardRules = [
-    {
-      name: "騎士卡",
-      desc: "移動強盜，並可偷取一名相鄰玩家的資源。"
-    },
-    {
-      name: "壟斷卡",
-      desc: "宣告一種資源，所有其他玩家必須交出該資源給你。"
-    },
-    {
-      name: "豐饒之年",
-      desc: "從資源堆獲得任意兩種資源，也可以都選同種資源。"
-    },
-    {
-      name: "道路建設",
-      desc: "免費建造兩條道路。"
-    },
-    {
-      name: "勝利點",
-      desc: "立即獲得一分，無需公開。"
+  // 修改 handleSendPrompt 函數
+  const handleSendPrompt = async () => {
+    const groupId = getGroupId(); // 動態獲取 groupId
+    
+    console.log('=== Debug Info ===');
+    console.log('newPrompt:', newPrompt);
+    console.log('groupId from storage:', groupId);
+    console.log('currentUser:', currentUser);
+    console.log('sendingPrompt:', sendingPrompt);
+    
+    if (!newPrompt.trim() || !groupId || sendingPrompt || !currentUser) {
+      console.log('Early return - conditions not met');
+      return;
     }
-  ];
+    
+    try {
+      setSendingPrompt(true);
+      setError(null);
+      
+      const result = await createPrompt(newPrompt.trim());
+      
+      if (result.success) {
+        console.log("Successfully create prompt");
+        console.log(result.data);
+        setNewPrompt("");
+        setPromptsByUser(prev => ({
+          ...prev,
+          [result.data.userId]: {
+            content: result.data.content,
+            updatedAt: result.data.updatedAt,
+            id: result.data.id
+          }
+        }));
+      } else {
+        setError(result.error || "Failed to send prompt");
+      }
+    } catch (err) {
+      console.error("Failed to send prompt:", err);
+      setError(err.message);
+    } finally {
+      setSendingPrompt(false);
+    }
+  };
 
-  const devBuildsRules = [
-    {
-      name: "購買發展卡",
-      desc: "移動強盜，並可偷取一名相鄰玩家的資源。",
-      cost: "所需資源：1個羊毛 + 1個小麥 + 1個礦石"
-    },
-    {
-      name: "建造城市",
-      desc: "將一個村莊升級為城市，獲得額外資源。",
-      cost: "所需資源：2個小麥 + 3個礦石"
-    },
-    {
-      name: "建造村莊",
-      desc: "在交叉點建造一個村莊，獲得資源。",
-      cost: "所需資源：1個木材 + 1個磚頭 + 1個羊毛 + 1個小麥"
-    },
-    {
-      name: "建造道路",
-      desc: "在邊界上建造一條道路，連接兩個交叉點。",
-      cost: "所需資源：1個木材 + 1個磚頭"
+  // Enter 鍵發送
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSendPrompt();
     }
-  ];
+  };
+
+  // 格式化時間顯示
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('zh-TW', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  // 如果沒有 token，不顯示內容（登入會在其他地方處理）
+  if (!getAuthToken()) {
+    return null;
+  }
 
   return (
-    <div className="analysis-box">
-      {/*
-      <div className="analysis-header">
-        <h3>勝率分析</h3>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleAnalyzeClick}
-          disabled={loading || state.gameState?.winning_color}
-          startIcon={loading ? <CircularProgress size={20} /> : <AssessmentIcon />}
-        >
-          {loading ? "分析中..." : "分析"}
-        </Button>
-      </div>*/}
+    <div className="prompt-sidebar">
+      {/* Prompt Summary 區域 */}
+      <div className="prompt-summary-section">
+        <Typography variant="h6" className="section-title">
+          Prompts 摘要
+        </Typography>
+        <div className="prompt-summary-box">
+          {loading ? (
+            <div className="loading-container">
+              <CircularProgress size={20} />
+            </div>
+          ) : (
+            <Typography variant="body2" className="summary-text">
+              {promptSummary || "暫無摘要"}
+            </Typography>
+          )}
+        </div>
+      </div>
 
+      <Divider className="section-divider" />
+
+      {/* 群組 Prompt 列表區域 */}
+      <div className="prompt-list-section">
+        <Typography variant="subtitle1" className="list-header">
+          群組 Prompts
+        </Typography>
+        <div className="prompt-list-container">
+          {loading ? (
+            <div className="loading-container">
+              <CircularProgress size={20} />
+            </div>
+          ) : (
+            <div className="prompt-list">
+              {Object.entries(promptsByUser).map(([userId, promptData], index) => {
+                const isCurrentUser = currentUser && userId == currentUser.id;
+                
+                return (
+                  <div 
+                    key={userId} 
+                    className={`prompt-item ${isCurrentUser ? 'current-user' : ''} has-content`}
+                  >
+                    <span className="prompt-id">{index + 1}</span>
+                    <div className="prompt-content">
+                      <div className="user-info">
+                        <Typography variant="body2" className="user-name">
+                          用戶 {userId} {isCurrentUser && '(你)'}
+                        </Typography>
+                        <Typography variant="caption" className="update-time">
+                          {formatTime(promptData.updatedAt)}
+                        </Typography>
+                      </div>
+                      <Typography variant="body2" className="prompt-text">
+                        {promptData.content}
+                      </Typography>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* 如果沒有任何 prompts */}
+              {Object.keys(promptsByUser).length === 0 && !loading && (
+                <div className="prompt-item empty">
+                  <Typography variant="body2" className="empty-prompt">
+                    群組中還沒有任何 prompts
+                  </Typography>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 錯誤訊息 */}
       {error && (
         <div className="error-message">
-          {error}
+          <Typography variant="body2" color="error">
+            {error}
+          </Typography>
         </div>
       )}
 
-      {mctsResults && !loading && !error && (
-        <div className="probability-bars">
-          {Object.entries(mctsResults).map(([color, probability]) => (
-            <div key={color} className={`probability-row ${color.toLowerCase()}`}>
-              <span className="player-color">{color}</span>
-              <span className="probability-bar">
-                <div
-                  className="bar-fill"
-                  style={{ width: `${probability}%` }}
-                />
-              </span>
-              <span className="probability-value">{probability}%</span>
-            </div>
-          ))}
+      {/* 發送 Prompt 區域 */}
+      <div className="send-prompt-section">
+        <Typography variant="body2" className="input-label">
+          輸入你的 Prompt {currentUser && `(${currentUser.username})`}
+        </Typography>
+        <div className="prompt-input-container">
+          <TextField
+            fullWidth
+            multiline
+            maxRows={3}
+            placeholder="輸入你的 prompt..."
+            value={newPrompt}
+            onChange={(e) => setNewPrompt(e.target.value)}
+            onKeyDown={handleKeyPress}
+            disabled={sendingPrompt || !currentUser}
+            variant="outlined"
+            size="small"
+            className="prompt-input"
+          />
+          <IconButton
+            onClick={handleSendPrompt}
+            disabled={!newPrompt.trim() || sendingPrompt || !currentUser}
+            className="send-button"
+            color="primary"
+          >
+            {sendingPrompt ? (
+              <CircularProgress size={20} />
+            ) : (
+              <SendIcon />
+            )}
+          </IconButton>
         </div>
-      )}
-      <Divider />
-      <div className="devcard-rules">
-        <h3>發展卡規則</h3>
-        <ul>
-          {devCardRules.map(card => (
-            <li key={card.name}>
-              <strong>{card.name}：</strong>{card.desc}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <Divider />
-      <div className="devcard-rules">
-        <h3>買卡/建造規則</h3>
-        <ul>
-          {devBuildsRules.map(rule => (
-            <li key={rule.name}>
-              <strong>{rule.name}：</strong>
-              {rule.desc}
-              <br />
-              {rule.cost}
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

@@ -2,13 +2,13 @@ import cn from "classnames";
 import Paper from "@mui/material/Paper";
 
 import "./Tile.scss";
-import brickTile from "../assets/brick.svg";
-import desertTile from "../assets/desert.svg";
-import grainTile from "../assets/wheat.svg";
-import lumberTile from "../assets/wood.svg";
-import oreTile from "../assets/ore.svg";
-import woolTile from "../assets/sheep.svg";
-import maritimeTile from "../assets/maritime.svg";
+import brickTile from "../assets/brick.png";
+import desertTile from "../assets/desert.png";
+import grainTile from "../assets/wheat.png";
+import lumberTile from "../assets/wood.png";
+import oreTile from "../assets/ore.png";
+import woolTile from "../assets/sheep.png";
+import maritimeTile from "../assets/maritime.png";
 import { SQRT3, tilePixelVector, type Direction } from "../utils/coordinates";
 
 type NumberTokenProps = {
