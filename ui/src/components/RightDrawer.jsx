@@ -14,12 +14,14 @@ import { useParams } from "react-router";
 import Hidden from "./Hidden";
 import { store } from "../store";
 import ACTIONS from "../actions";
+import {getStoredUser} from "../utils/authAPI"
 
 import "./RightDrawer.scss";
 
 // 獲取存儲的 token
 const getAuthToken = () => {
-  return localStorage.getItem('access_token');
+  const user = getStoredUser();
+  return user.access_token;
 };
 
 // API 基礎配置
@@ -122,30 +124,31 @@ const createPrompt = async (promptData) => {
   }
 };
 
-// 獲取當前用戶資訊
-const getCurrentUser = async () => {
-  try {
-    const user = await authFetch('/users/me/');
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        groupId: user.group_id
-      }
-    };
-  } catch (error) {
-    console.error('獲取用戶資訊失敗:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
+// // 獲取當前用戶資訊
+// const getCurrentUser = async () => {
+//   try {
+//     const current_user = 
+//     return {
+//       success: true,
+//       user: {
+//         username: current_user.username,
+//         id: current_user.id,
+//         group_id: current_user.group_id
+//       }
+//     }
+//   } catch (error) {
+//     console.error('獲取用戶資訊失敗:', error);
+//     return {
+//       success: false,
+//       error: error.message
+//     };
+//   }
+// };
 
 function DrawerContent() {
   const { groupId } = useParams(); // 從 URL 獲取 groupId 而不是 gameId
   const { state } = useContext(store);
+  // console.log('test')
   
   // 狀態管理
   const [promptSummary, setPromptSummary] = useState("");
@@ -172,14 +175,14 @@ function DrawerContent() {
       }
 
       // 從 API 獲取用戶資訊
-      const result = await getCurrentUser();
-      if (result.success) {
-        setCurrentUser(result.user);
-        localStorage.setItem('currentUser', JSON.stringify(result.user));
-      } else {
-        console.error('無法獲取用戶資訊:', result.error);
-        setError('無法獲取用戶資訊');
-      }
+      // const result = await getCurrentUser();
+      // if (result.success) {
+      //   setCurrentUser(result.user);
+      //   localStorage.setItem('currentUser', JSON.stringify(result.user));
+      // } else {
+      //   console.error('無法獲取用戶資訊:', result.error);
+      //   setError('無法獲取用戶資訊');
+      // }
     };
 
     if (getAuthToken()) {
@@ -189,6 +192,7 @@ function DrawerContent() {
 
   // 載入數據
   useEffect(() => {
+    console.log(groupId, currentUser);
     if (groupId && currentUser) {
       loadPromptData();
     }
