@@ -120,3 +120,14 @@ export const getGroupAvatar = async (groupId) => {
   const data = await response.json();
   return data.avatar_url;
 };
+
+export const getLeaderName = async (groupId) => {
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
+  
+  if (!response.ok) {
+    throw new Error(`無法獲取群組領導者名稱: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data.leader_name;
+};

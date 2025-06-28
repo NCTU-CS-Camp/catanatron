@@ -94,14 +94,16 @@ export function ResourceCards({ playerState, playerKey }) {
   );
 }
 
-export default function PlayerStateBox({ playerState, playerKey, color }) {
-  const actualVps = playerState[`${playerKey}_ACTUAL_VICTORY_POINTS`];
-  const colorClass = {
+const colorClass = {
     RED: "玩家1",
     BLUE: "玩家2",
     ORANGE: "玩家3",
     WHITE: "玩家4",
   };
+
+export default function PlayerStateBox({ playerState, playerKey, color }) {
+  const actualVps = playerState[`${playerKey}_ACTUAL_VICTORY_POINTS`];
+  
   return (
     <div className={cn("player-state-box foreground", color)}>
       <div className="player-section-header">

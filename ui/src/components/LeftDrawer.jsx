@@ -1,4 +1,4 @@
-import React, { useCallback, useContext } from "react";
+import React, { useCallback, useContext, useState, useEffect } from "react";
 import cn from "classnames";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import Divider from "@mui/material/Divider";
@@ -11,10 +11,31 @@ import { humanizeAction } from "./Prompt";
 import { store } from "../store";
 import ACTIONS from "../actions";
 import { playerKey } from "../utils/stateUtils";
+import { getStoredUser,getLeaderName } from "../utils/authAPI";
 
 import "./LeftDrawer.scss";
 
 function DrawerContent({ gameState }) {
+  const [leaderName, setLeaderName] = useState("");
+  
+  // 獲取隊伍名稱
+  useEffect(() => {
+    const fetchLeaderName = async () => {
+      try {
+        const user = getStoredUser();
+        if (user && user.group_id) {
+          const name = await getLeaderName(user.group_id);
+          setLeaderName(name);
+        }
+      } catch (error) {
+        console.error("獲取隊伍名稱失敗:", error);
+        setLeaderName("未知隊伍");
+      }
+    };
+    
+    fetchLeaderName();
+  }, []);
+
   const playerSections = gameState.colors.map((color) => {
     const key = playerKey(gameState, color);
     return (
@@ -43,6 +64,7 @@ function DrawerContent({ gameState }) {
                 <div className="action-content">
                   <PlayerAvatar color={action[0]} size="small" />
                   <span className={cn("player-name foreground", action[0])}>
+                    {/* {leaderName || "載入中..."} */}
                     {currentPlayer}
                   </span>
                   <span className="action-text">
