@@ -7,9 +7,47 @@ body,
 }
 
 body {
-  font-family: "Roboto", sans-serif;
+  font-family: "Zen Maru Gothic", "Roboto", sans-serif;
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 中文字體專用類 */
+.zen-maru-gothic-regular {
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.zen-maru-gothic-medium {
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.zen-maru-gothic-bold {
+  font-family: "Zen Maru Gothic", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* 確保中文字符使用 Zen Maru Gothic */
+* {
+  font-family: "Zen Maru Gothic", "Roboto", sans-serif;
+}
+
+/* 針對常見的中文內容區域 */
+.prompt-sidebar,
+.action-text,
+.user-name,
+.input-label,
+.section-title,
+.list-header,
+.summary-text,
+.prompt-text,
+.error-message {
+  font-family: "Zen Maru Gothic", sans-serif;
 }
 
 code {
