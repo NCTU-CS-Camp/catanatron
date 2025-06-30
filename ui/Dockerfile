@@ -1,16 +1,11 @@
-FROM node:24-alpine
-
-# Why do we install these?
-# RUN apk add --no-cache --virtual .gyp python make g++
-
+FROM node:18-alpine AS build
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# We copy just the dependencies first to leverage Docker cache
-COPY package.json /app
-COPY package-lock.json /app
-
-RUN npm install
-
-COPY . /app
-
-CMD ["npm", "start"]
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
