@@ -1,5 +1,6 @@
 import React from "react";
 import { isPlayersTurn } from "../utils/stateUtils";
+import { getStoredUser } from "../utils/authAPI";
 
 import "./Prompt.scss";
 
@@ -33,6 +34,52 @@ const resourceMap = {
   ORE: "礦石"
 };
 
+const colorClass1 = {
+    RED: "第1小隊",
+    BLUE: "第2小隊",
+    WHITE: "第3小隊",
+    ORANGE: "第4小隊",
+};
+const colorClass2 = {
+    RED: "第5小隊",
+    BLUE: "第6小隊",
+    WHITE: "第7小隊",
+    ORANGE: "第8小隊",
+};
+
+const colorClass3 = {
+    RED: "第8小隊",
+    BLUE: "第9小隊",
+    WHITE: "第10小隊",
+    ORANGE: "第11小隊",
+};
+
+const getPlayerConfig = () => {
+  const user = getStoredUser();
+  if (!user || !user.group_id) {
+    return colorClass1; // 預設配置
+  }
+
+  switch (user.group_id) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return colorClass1;
+    case 5:
+    case 6:
+    case 7:
+      return colorClass2;
+    case 8:
+    case 9:
+    case 10:
+      return colorClass3;
+    default:
+      return colorClass1; // 預設配置
+  }
+}
+
+const playerConfig = getPlayerConfig();
 const playerMap = {
   RED: "玩家1",
   BLUE: "玩家2",
@@ -43,7 +90,7 @@ const playerMap = {
 export function humanizeAction(gameState, action) {
   // const botColors = gameState.bot_colors;
   // const player = botColors.includes(action[0]) ? "電腦" : "你";
-  const player = playerMap[action[0]] || action[0];
+  const player = playerConfig[action[0]] || action[0];
   switch (action[1]) {
     case "ROLL":
       return [player, `骰了 ${action[2][0] + action[2][1]}`];
@@ -127,7 +174,7 @@ export function humanizeAction(gameState, action) {
     case "REJECT_TRADE":
       return [player, `拒絕了本次貿易`];
     case "CONFIRM_TRADE":
-      const player2Color = playerMap[action[2][10]] || action[2][10];
+      const player2Color = playerConfig[action[2][10]] || action[2][10];
       return [player, `確認了 ${player2Color} 提出的貿易`];
     case "CANCEL_TRADE":
       return [player, `取消了本次貿易`];

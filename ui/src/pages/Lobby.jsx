@@ -27,8 +27,54 @@ import {
   getDetailedWebSocketGame,
   checkWebSocketEngineStatus,
 } from "../utils/apiClient";
+import { getStoredUser } from "../utils/authAPI";
 
 import "./Lobby.scss";
+
+const colorClass1 = {
+    RED: "第1小隊",
+    BLUE: "第2小隊",
+    WHITE: "第3小隊",
+    ORANGE: "第4小隊",
+};
+const colorClass2 = {
+    RED: "第5小隊",
+    BLUE: "第6小隊",
+    WHITE: "第7小隊",
+    ORANGE: "第8小隊",
+};
+
+const colorClass3 = {
+    RED: "第8小隊",
+    BLUE: "第9小隊",
+    WHITE: "第10小隊",
+    ORANGE: "第11小隊",
+};
+
+const getPlayerConfig = () => {
+  const user = getStoredUser();
+  if (!user || !user.group_id) {
+    return colorClass1; // 預設配置
+  }
+
+  switch (user.group_id) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return colorClass1;
+    case 5:
+    case 6:
+    case 7:
+      return colorClass2;
+    case 8:
+    case 9:
+    case 10:
+      return colorClass3;
+    default:
+      return colorClass1; // 預設配置
+  }
+}
 
 export default function Lobby() {
   const [games, setGames] = useState([]);
@@ -118,14 +164,11 @@ export default function Lobby() {
     navigate("/games/websocket/websocket_multiplayer_game");
   };
 
+  const playerConfig = getPlayerConfig();
+  
   const getPlayerColorDisplay = (color) => {
-    const colorMap = {
-      RED: "RED Player",
-      BLUE: "BLUE Player",
-      WHITE: "WHITE Player",
-      ORANGE: "ORANGE Player",
-    };
-    return colorMap[color] || `${color} Player`;
+    
+    return playerConfig[color] || `${color} Player`;
   };
 
   const getPlayerIcon = (color) => {

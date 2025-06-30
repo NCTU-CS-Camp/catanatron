@@ -64,7 +64,6 @@ function DrawerContent({ gameState }) {
                 <div className="action-content">
                   <PlayerAvatar color={action[0]} size="small" />
                   <span className={cn("player-name foreground", action[0])}>
-                    {/* {leaderName || "載入中..."} */}
                     {currentPlayer}
                   </span>
                   <span className="action-text">

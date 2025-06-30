@@ -4,6 +4,7 @@ import cn from "classnames";
 import "./PlayerStateBox.scss";
 import { Paper } from "@mui/material";
 import PlayerAvatar from "./PlayerAvatar";
+import { getStoredUser } from "../utils/authAPI";
 
 export function ResourceCards({ playerState, playerKey }) {
   const amount = (card) => playerState[`${playerKey}_${card}_IN_HAND`];
@@ -94,21 +95,59 @@ export function ResourceCards({ playerState, playerKey }) {
   );
 }
 
-const colorClass = {
-    RED: "玩家1",
-    BLUE: "玩家2",
-    ORANGE: "玩家3",
-    WHITE: "玩家4",
-  };
+const colorClass1 = {
+    RED: "第1小隊",
+    BLUE: "第2小隊",
+    WHITE: "第3小隊",
+    ORANGE: "第4小隊",
+};
+const colorClass2 = {
+    RED: "第5小隊",
+    BLUE: "第6小隊",
+    WHITE: "第7小隊",
+    ORANGE: "第8小隊",
+};
 
+const colorClass3 = {
+    RED: "第8小隊",
+    BLUE: "第9小隊",
+    WHITE: "第10小隊",
+    ORANGE: "第11小隊",
+};
+
+const getPlayerConfig = () => {
+  const user = getStoredUser();
+  if (!user || !user.group_id) {
+    return colorClass1; // 預設配置
+  }
+
+  switch (user.group_id) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return colorClass1;
+    case 5:
+    case 6:
+    case 7:
+      return colorClass2;
+    case 8:
+    case 9:
+    case 10:
+      return colorClass3;
+    default:
+      return colorClass1; // 預設配置
+  }
+}
 export default function PlayerStateBox({ playerState, playerKey, color }) {
   const actualVps = playerState[`${playerKey}_ACTUAL_VICTORY_POINTS`];
+  const playerConfig = getPlayerConfig();
   
   return (
     <div className={cn("player-state-box foreground", color)}>
       <div className="player-section-header">
         <PlayerAvatar color={color} size="small" />
-        <span className="player-title">{colorClass[`${color}`]}</span>
+        <span className="player-title">{playerConfig[color]}</span>
       </div>
       <ResourceCards playerState={playerState} playerKey={playerKey} />
       <div className="scores">
