@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@mui/material";
+import { Button, Container, Typography, Box, Fade, Grow } from "@mui/material";
 import { GridLoader } from "react-spinners";
 import { createGame } from "../utils/apiClient";
+import { SportsEsports } from "@mui/icons-material";
 
 import "./HomePage.scss";
 
@@ -45,66 +46,61 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <h1 className="logo">卡坦島</h1>
-
-      <div className="switchable">
-        {!loading ? (
-          <>
-            {/* <div className="player-count-selector">
-              <div className="player-count-label">Number of Players</div>
-              <div className="player-count-buttons">
-                {[2, 3, 4].map((value) => (
-                  <Button
-                    key={value}
-                    variant="contained"
-                    onClick={() => setNumPlayers(value)}
-                    className={`player-count-button ${
-                      numPlayers === value ? "selected" : ""
-                    }`}
-                  >
-                    {value} 人對戰
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => handleCreateGame(GameMode.HUMAN_VS_CATANATRON)}
-            >
-              跟卡坦島PK
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => handleCreateGame(GameMode.RANDOM_BOTS)}
-            >
-              觀看人機對決
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => handleCreateGame(GameMode.CATANATRON_BOTS)}
-            >
-              觀戰
-            </Button> */}
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => navigate("/login")}
-            >
-              登入
-            </Button>
-          </>
-        ) : (
-          <GridLoader
-            className="loader"
-            color="#ffffff"
-            height={60}
-            width={60}
-          />
-        )}
+      {/* 海底世界背景 */}
+      <div className="underwater-background">
+        <div className="water-surface"></div>
+        
+        {/* 輕微的泡泡效果 */}
+        <div className="bubble bubble-1"></div>
+        <div className="bubble bubble-2"></div>
+        <div className="bubble bubble-3"></div>
       </div>
+
+      <Container maxWidth="lg" className="home-container">
+        <Fade in={true} timeout={1000}>
+          <div className="home-header">
+            <div className="game-icon-container">
+              <SportsEsports className="main-game-icon" />
+            </div>
+            <Typography variant="h1" component="h1" className="main-title">
+              CS Camp Catan
+            </Typography>
+            <Typography variant="h5" component="h2" className="sub-title">
+              使用LLM來玩卡坦島吧！
+            </Typography>
+          </div>
+        </Fade>
+
+        <Grow in={true} timeout={1200}>
+          <div className="action-container">
+            {!loading ? (
+              <div className="button-group">
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate("/login")}
+                  className="enter-game-button"
+                  fullWidth
+                >
+                  進入遊戲
+                </Button>
+              </div>
+            ) : (
+              <div className="loading-section">
+                <GridLoader
+                  color="#2196f3"
+                  size={15}
+                  margin={5}
+                  speedMultiplier={0.8}
+                />
+                <Typography variant="h6" className="loading-text">
+                  正在準備遊戲...
+                </Typography>
+              </div>
+            )}
+          </div>
+        </Grow>
+      </Container>
     </div>
   );
 }

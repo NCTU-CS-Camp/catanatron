@@ -15,7 +15,7 @@ import Hidden from "./Hidden";
 import { store } from "../store";
 import ACTIONS from "../actions";
 import {getStoredUser} from "../utils/authAPI"
-import { API_BASE_URL } from "../configuration"; // 確保這個路徑正確
+import { LLM_API_BASE_URL } from "../configuration"; // 確保這個路徑正確
 
 import "./RightDrawer.scss";
 
@@ -45,7 +45,7 @@ const authFetch = async (url, options = {}) => {
     ...options,
   };
 
-  const response = await fetch(`${API_BASE_URL}${url}`, config);
+  const response = await fetch(`${LLM_API_BASE_URL}${url}`, config);
 
   if (response.status === 401) {
     // Token 可能過期，清除本地存儲

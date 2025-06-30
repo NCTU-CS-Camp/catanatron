@@ -187,31 +187,24 @@ export default function Lobby() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #4fc3f7 0%, #29b6f6 50%, #03a9f4 100%)",
-        position: "relative",
-        overflow: "auto",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `
-            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 1px, transparent 1px),
-            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 1px, transparent 1px),
-            radial-gradient(circle at 60% 20%, rgba(255,255,255,0.05) 2px, transparent 2px)
-          `,
-          backgroundSize: "100px 100px, 150px 150px, 200px 200px",
-          animation: "float 6s ease-in-out infinite",
-          pointerEvents: "none",
-        },
-      }}
-    >
+    <div className="lobby-page">
+      {/* 海底世界背景 */}
+      <div className="underwater-background">
+        <div className="water-surface"></div>
+        
+        {/* 輕微的泡泡效果 */}
+        <div className="bubble bubble-1"></div>
+        <div className="bubble bubble-2"></div>
+        <div className="bubble bubble-3"></div>
+      </div>
+
+      <Box
+        sx={{
+          minHeight: "100vh",
+          position: "relative",
+          overflow: "auto",
+        }}
+      >
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
         <Box sx={{ py: 4 }}>
           {/* 標題區域 */}
@@ -229,12 +222,22 @@ export default function Lobby() {
                 variant="h3"
                 component="h1"
                 sx={{
-                  color: "#333",
-                  fontWeight: "bold",
-                  textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
+                  fontFamily: '"Bungee Inline", sans-serif',
+                  color: "black",
+                  fontWeight: "700",
+                  letterSpacing: "2px",
+                  fontSize: "3rem",
+                  "@media (max-width: 768px)": {
+                    fontSize: "2.5rem",
+                    letterSpacing: "1px",
+                  },
+                  "@media (max-width: 480px)": {
+                    fontSize: "2rem",
+                    letterSpacing: "0.5px",
+                  },
                 }}
               >
-                Catanatron Game Lobby
+                CS Camp Catan
               </Typography>
             </Box>
 
@@ -337,7 +340,13 @@ export default function Lobby() {
                               <Box>
                                 <Typography
                                   variant="h6"
-                                  sx={{ fontWeight: "bold", color: "#333" }}
+                                  sx={{ 
+                                    fontFamily: '"Bungee Inline", sans-serif',
+                                    fontWeight: "700", 
+                                    color: "#333",
+                                    letterSpacing: "0.5px",
+                                    fontSize: "1.1rem",
+                                  }}
                                 >
                                   {getPlayerColorDisplay(playerInfo.color)}
                                 </Typography>
@@ -415,7 +424,14 @@ export default function Lobby() {
             <CardContent sx={{ p: 4 }}>
               <Typography
                 variant="h5"
-                sx={{ fontWeight: "bold", color: "#333", mb: 3 }}
+                sx={{ 
+                  fontFamily: '"Bungee Inline", sans-serif',
+                  fontWeight: "700", 
+                  color: "black", 
+                  mb: 3,
+                  letterSpacing: "1px",
+                  fontSize: "1.8rem",
+                }}
               >
                 Game Status
               </Typography>
@@ -632,6 +648,7 @@ export default function Lobby() {
           }
         }
       `}</style>
-    </Box>
+      </Box>
+    </div>
   );
 }

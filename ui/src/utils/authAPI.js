@@ -1,10 +1,10 @@
-import { API_BASE_URL } from "../configuration"; // 確保這個路徑正確
+import { LLM_API_BASE_URL } from "../configuration"; // 確保這個路徑正確
 // API 基礎設定
-//const API_BASE_URL = "http://172.18.8.215:8000";
+//const LLM_API_BASE_URL = "http://172.18.8.215:8000";
 
 // 登入獲取 Token
 export const loginAPI = async (username, password) => {
-  const response = await fetch(`${API_BASE_URL}/token`, {
+  const response = await fetch(`${LLM_API_BASE_URL}/token`, {
     method: "POST",
     headers: {  
       "Content-Type": "application/x-www-form-urlencoded",
@@ -25,7 +25,7 @@ export const loginAPI = async (username, password) => {
 
 // 獲取當前用戶資訊
 export const getCurrentUser = async (accessToken) => {
-  const response = await fetch(`${API_BASE_URL}/users/me/`, {
+  const response = await fetch(`${LLM_API_BASE_URL}/users/me/`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -112,7 +112,7 @@ export const authenticatedFetch = async (url, options = {}) => {
 };
 
 export const getGroupAvatar = async (groupId) => {
-  const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
+  const response = await fetch(`${LLM_API_BASE_URL}/groups/${groupId}`);
 
   if (!response.ok) {
     throw new Error(`無法獲取群組頭像: ${response.status}`);
@@ -123,7 +123,7 @@ export const getGroupAvatar = async (groupId) => {
 };
 
 export const getLeaderName = async (groupId) => {
-  const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
+  const response = await fetch(`${LLM_API_BASE_URL}/groups/${groupId}`);
 
   if (!response.ok) {
     throw new Error(`無法獲取群組領導者名稱: ${response.status}`);

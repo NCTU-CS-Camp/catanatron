@@ -53,11 +53,15 @@ services:
       - .:/app
     depends_on:
       - server
-  react-ui:
-    build: ./ui
-    ports:
-      - 3000:80
-    stdin_open: true
-    volumes:
-      - /app/node_modules
-      - ./ui:/app
+  # react-ui:
+  #   build: ./ui
+  #   environment:
+  #     - CTRON_API_URL=http://${HOST}:5001
+  #     - CTRON_WEBSOCKET_ENGINE_URL=http://${HOST}:8100
+  #     - CTRON_LLM_API_BASE_URL=http://${LLM_HOST}:8000
+  #   ports:
+  #     - 3000:80
+  #   stdin_open: true
+  #   volumes:
+  #     - /app/node_modules
+  #     - ./ui:/app

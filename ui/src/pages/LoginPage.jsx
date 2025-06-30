@@ -7,12 +7,18 @@ import {
   CardContent, 
   Typography, 
   Box,
-  Alert
+  Alert,
+  Container,
+  Avatar,
+  Fade,
+  Grow
 } from "@mui/material";
 import { GridLoader } from "react-spinners";
 import { loginAPI, getCurrentUser } from "../utils/authAPI";
+import { SportsEsports, Lock, Person } from "@mui/icons-material";
 
 import "./HomePage.scss";
+import "./LoginPage.scss";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -92,107 +98,126 @@ export default function LoginPage() {
   // };
 
   return (
-    <div className="home-page" style={{ minHeight: '100vh', padding: '20px' }}>
-      <h1 className="logo">卡坦島 - 登入</h1>
-
-      <div className="switchable">
-        {!loading ? (
-          <Card sx={{ 
-            maxWidth: 400, 
-            margin: 'auto', 
-            mt: 4,
-            minHeight: 'auto',
-            overflow: 'visible'
-          }}>
-            <CardContent sx={{ padding: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom align="center">
-                歡迎回來
-              </Typography>
-
-              {error && (
-                <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              <Box component="form" onSubmit={handleLogin}>
-                <TextField
-                  fullWidth
-                  label="帳號"
-                  variant="outlined"
-                  value={formData.username}
-                  onChange={handleInputChange('username')}
-                  sx={{ mb: 2 }}
-                  placeholder="請輸入帳號"
-                  required
-                />
-                <TextField
-                  fullWidth
-                  label="密碼"
-                  type="password"
-                  variant="outlined"
-                  value={formData.password}
-                  onChange={handleInputChange('password')}
-                  sx={{ mb: 3 }}
-                  placeholder="請輸入密碼"
-                  required
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    sx={{ minWidth: 200 }}
-                  >
-                    登入
-                  </Button>
-                </Box>
-              </Box>
-
-              {/* <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  或者
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleGuestLogin}
-                  fullWidth
-                  size="large"
-                  sx={{ mb: 2 }}
-                >
-                  訪客模式進入
-                </Button>
-              </Box> */}
-
-              {/* API 連接說明
-              <Box sx={{ 
-                mt: 2, 
-                p: 2, 
-                backgroundColor: '#e3f2fd', 
-                borderRadius: 1,
-                fontSize: '0.75rem'
-              }}>
-                <Typography variant="caption" color="text.secondary">
-                  <strong>API 連接設定：</strong><br/>
-                  確保後端服務運行在 http://172.18.10.216:8000<br/>
-                  使用真實的帳號密碼進行登入
-                </Typography>
-              </Box> */}
-            </CardContent>
-          </Card>
-        ) : (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-            <GridLoader
-              className="loader"
-              color="#1976d2"
-              height={60}
-              width={60}
-            />
-          </Box>
-        )}
+    <div className="login-page">
+      {/* 海洋泡泡動畫背景 */}
+      <div className="background-animation">
+        <div className="floating-shape shape-1"></div>
+        <div className="floating-shape shape-2"></div>
+        <div className="floating-shape shape-3"></div>
+        <div className="floating-shape shape-4"></div>
+        <div className="floating-shape shape-5"></div>
+        {/* 額外的小泡泡 */}
+        <div className="floating-shape" style={{
+          width: '25px', height: '25px', top: '15%', right: '25%',
+          animationDelay: '7s', animationDuration: '10s'
+        }}></div>
+        <div className="floating-shape" style={{
+          width: '35px', height: '35px', bottom: '20%', left: '70%',
+          animationDelay: '5s', animationDuration: '9s'
+        }}></div>
+        <div className="floating-shape" style={{
+          width: '15px', height: '15px', top: '70%', left: '80%',
+          animationDelay: '9s', animationDuration: '11s'
+        }}></div>
       </div>
+
+      <Container maxWidth="sm" className="login-container">
+        <Fade in={true} timeout={1000}>
+          <div className="login-header">
+            <Avatar className="game-icon">
+              <SportsEsports sx={{ fontSize: 40 }} />
+            </Avatar>
+            <Typography variant="h2" component="h1" className="main-title">
+              CS CAMP CATAN
+            </Typography>
+            <Typography variant="h5" component="h2" className="sub-title">
+              歡迎來到卡坦島世界
+            </Typography>
+          </div>
+        </Fade>
+
+        <Grow in={true} timeout={1200}>
+          <div className="login-form-container">
+            {!loading ? (
+              <Card className="login-card">
+                <CardContent className="login-card-content">
+                  <Box className="login-form-header">
+                    <Avatar className="login-avatar">
+                      <Lock />
+                    </Avatar>
+                    <Typography variant="h5" component="h3" className="form-title">
+                      登入遊戲
+                    </Typography>
+                  </Box>
+
+                  {error && (
+                    <Fade in={!!error}>
+                      <Alert severity="error" className="error-alert">
+                        {error}
+                      </Alert>
+                    </Fade>
+                  )}
+
+                  <Box component="form" onSubmit={handleLogin} className="login-form">
+                    <Box className="input-group">
+                      <Person className="input-icon" />
+                      <TextField
+                        fullWidth
+                        label="帳號"
+                        variant="outlined"
+                        value={formData.username}
+                        onChange={handleInputChange('username')}
+                        placeholder="請輸入帳號"
+                        required
+                        className="styled-input"
+                      />
+                    </Box>
+                    
+                    <Box className="input-group">
+                      <Lock className="input-icon" />
+                      <TextField
+                        fullWidth
+                        label="密碼"
+                        type="password"
+                        variant="outlined"
+                        value={formData.password}
+                        onChange={handleInputChange('password')}
+                        placeholder="請輸入密碼"
+                        required
+                        className="styled-input"
+                      />
+                    </Box>
+
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      size="large"
+                      className="login-button"
+                      fullWidth
+                    >
+                      開始遊戲
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="loading-card">
+                <CardContent className="loading-content">
+                  <GridLoader
+                    color="#2196f3"
+                    size={15}
+                    margin={5}
+                    speedMultiplier={0.8}
+                  />
+                  <Typography variant="h6" className="loading-text">
+                    正在連接伺服器...
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </Grow>
+      </Container>
     </div>
   );
 }

@@ -1,9 +1,164 @@
+// Lobby Page with Underwater Background
+.lobby-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+
+  // 海底世界背景
+  .underwater-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../homepage.png') center center / cover no-repeat;
+    z-index: 0;
+    
+    // 添加輕微的藍色濾鏡和動畫效果
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 100, 200, 0.1);
+      animation: waterShimmer 8s ease-in-out infinite;
+    }
+    
+    @keyframes waterShimmer {
+      0%, 100% { 
+        background: rgba(0, 100, 200, 0.1);
+      }
+      50% { 
+        background: rgba(0, 150, 255, 0.2);
+      }
+    }
+
+    // 輕微的水面波紋效果
+    .water-surface {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.03) 75%,
+        transparent 100%
+      );
+      background-size: 400px 100%;
+      animation: waterFlow 15s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes waterFlow {
+      0% { background-position-x: 0; }
+      100% { background-position-x: 400px; }
+    }
+
+    // 輕微的泡泡動畫
+    .bubble {
+      position: absolute;
+      background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+      );
+      border-radius: 50%;
+      animation: bubbleRise 12s linear infinite;
+      box-shadow: 
+        inset 0 0 8px rgba(255, 255, 255, 0.3),
+        0 0 15px rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+
+      &.bubble-1 {
+        width: 8px;
+        height: 8px;
+        left: 15%;
+        animation-delay: 0s;
+        animation-duration: 10s;
+      }
+
+      &.bubble-2 {
+        width: 12px;
+        height: 12px;
+        left: 60%;
+        animation-delay: 4s;
+        animation-duration: 14s;
+      }
+
+      &.bubble-3 {
+        width: 6px;
+        height: 6px;
+        left: 80%;
+        animation-delay: 8s;
+        animation-duration: 12s;
+      }
+    }
+
+    @keyframes bubbleRise {
+      0% {
+        bottom: -50px;
+        opacity: 0.8;
+        transform: translateX(0) scale(1);
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        bottom: 110vh;
+        opacity: 0;
+        transform: translateX(50px) scale(1.2);
+      }
+    }
+  }
+
+  // 確保內容在背景之上
+  .MuiContainer-root {
+    position: relative;
+    z-index: 10;
+  }
+
+  // 調整卡片透明度以配合背景
+  .MuiCard-root {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  // 響應式設計
+  @media (max-width: 768px) {
+    .underwater-background {
+      .bubble {
+        &.bubble-3 {
+          display: none;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .underwater-background {
+      .bubble {
+        &.bubble-2, &.bubble-3 {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
 .lobby-container {
   min-height: 100vh;
   max-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   // 確保滾動條樣式美觀
   &::-webkit-scrollbar {
@@ -280,6 +435,4 @@
   }
 }
 
-.root {
-  background-image: url("src/homepage.png");
-}
+
