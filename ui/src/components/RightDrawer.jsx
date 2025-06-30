@@ -15,6 +15,7 @@ import Hidden from "./Hidden";
 import { store } from "../store";
 import ACTIONS from "../actions";
 import {getStoredUser} from "../utils/authAPI"
+import { API_BASE_URL } from "../configuration"; // 確保這個路徑正確
 
 import "./RightDrawer.scss";
 
@@ -25,7 +26,7 @@ const getAuthToken = () => {
 };
 
 // API 基礎配置
-const API_BASE_URL = 'http://172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
+//const API_BASE_URL = 'http://172.18.8.215:8000'; // 如果需要的話，設置你的 API 基礎 URL
 
 // 創建帶認證的 fetch 函數
 const authFetch = async (url, options = {}) => {
@@ -45,7 +46,7 @@ const authFetch = async (url, options = {}) => {
   };
 
   const response = await fetch(`${API_BASE_URL}${url}`, config);
-  
+
   if (response.status === 401) {
     // Token 可能過期，清除本地存儲
     localStorage.removeItem('access_token');

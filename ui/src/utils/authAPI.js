@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "../configuration"; // 確保這個路徑正確
 // API 基礎設定
-const API_BASE_URL = "http://172.18.8.215:8000";
+//const API_BASE_URL = "http://172.18.8.215:8000";
 
 // 登入獲取 Token
 export const loginAPI = async (username, password) => {
@@ -112,7 +113,7 @@ export const authenticatedFetch = async (url, options = {}) => {
 
 export const getGroupAvatar = async (groupId) => {
   const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
-  
+
   if (!response.ok) {
     throw new Error(`無法獲取群組頭像: ${response.status}`);
   }
@@ -123,7 +124,7 @@ export const getGroupAvatar = async (groupId) => {
 
 export const getLeaderName = async (groupId) => {
   const response = await fetch(`${API_BASE_URL}/groups/${groupId}`);
-  
+
   if (!response.ok) {
     throw new Error(`無法獲取群組領導者名稱: ${response.status}`);
   }
