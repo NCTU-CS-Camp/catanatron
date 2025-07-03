@@ -13,6 +13,7 @@ import {
   IconButton,
   Tooltip,
   Container,
+  Avatar,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
@@ -27,7 +28,8 @@ import {
   getDetailedWebSocketGame,
   checkWebSocketEngineStatus,
 } from "../utils/apiClient";
-import { getStoredUser } from "../utils/authAPI";
+import { getGroupAvatar, getStoredUser } from "../utils/authAPI";
+import PlayerAvatar from "../components/PlayerAvatar";
 
 import "./Lobby.scss";
 
@@ -50,9 +52,8 @@ const colorClass3 = {
     WHITE: "第10小隊",
     ORANGE: "第11小隊",
 };
-
+const user = getStoredUser();
 const getPlayerConfig = () => {
-  const user = getStoredUser();
   if (!user || !user.group_id) {
     return colorClass1; // 預設配置
   }
@@ -75,7 +76,7 @@ const getPlayerConfig = () => {
       return colorClass1; // 預設配置
   }
 }
-
+const PictureUrl = getGroupAvatar(user.group_id);
 export default function Lobby() {
   const [games, setGames] = useState([]);
   const [currentWebSocketGame, setCurrentWebSocketGame] = useState(null);
@@ -380,6 +381,42 @@ export default function Lobby() {
                                   mr: 2,
                                 }}
                               />
+
+                              {/* 使用 PlayerAvatar 組件 */}
+                            <Box
+                              sx={{
+                                position: "relative",
+                                mr: 2,
+                              }}
+                            >
+                              <PlayerAvatar 
+                                color={playerInfo.color} 
+                                size="large" 
+                                style={{
+                                  border: isConnected ? "3px solid #4caf50" : "3px solid #f44336",
+                                  borderRadius: "50%",
+                                  boxShadow: isConnected 
+                                    ? "0 0 10px rgba(76, 175, 80, 0.5)" 
+                                    : "0 0 10px rgba(244, 67, 54, 0.5)",
+                                  transition: "all 0.3s ease",
+                                }}
+                              />
+                              {/* 連線狀態指示器 */}
+                                {/* <Box
+                                  sx={{
+                                    position: "absolute",
+                                    bottom: -2,
+                                    right: -2,
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: "50%",
+                                    backgroundColor: isConnected ? "#4caf50" : "#f44336",
+                                    border: "2px solid white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    animation: isConnected ? "pulse 2s infinite" : "none",
+                                  }}
+                                /> */}
+                              </Box>
                               <Box>
                                 <Typography
                                   variant="h6"
@@ -425,12 +462,12 @@ export default function Lobby() {
                             </Box>
 
                             <Box sx={{ color: "#666", fontSize: "0.875rem" }}>
-                              <Typography variant="body2">
+                              {/* <Typography variant="body2">
                                 Port: {port}
                               </Typography>
                               <Typography variant="body2">
                                 IP: {ipAddress}
-                              </Typography>
+                              </Typography> */}
                               {isConnected && connectionTime && (
                                 <Typography variant="body2">
                                   Connected:{" "}

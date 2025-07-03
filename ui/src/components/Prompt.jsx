@@ -1,6 +1,6 @@
 import React from "react";
 import { isPlayersTurn } from "../utils/stateUtils";
-import { getStoredUser } from "../utils/authAPI";
+import { getStoredUser, getGroupAvatar } from "../utils/authAPI";
 
 import "./Prompt.scss";
 
@@ -170,14 +170,14 @@ export function humanizeAction(gameState, action) {
       const [resource_INFO1, resource_INFO2] = trade_log(action);
       return [player, `提出交易: ${resource_INFO1.join(", ")} 換 ${resource_INFO2.join(", ")}`];
     case "ACCEPT_TRADE":
-      return [player, `願意貿易`];
+      return [player, `願意交易`];
     case "REJECT_TRADE":
-      return [player, `拒絕了本次貿易`];
+      return [player, `拒絕了本次交易`];
     case "CONFIRM_TRADE":
       const player2Color = playerConfig[action[2][10]] || action[2][10];
-      return [player, `確認了 ${player2Color} 提出的貿易`];
+      return [player, `確認了 ${player2Color} 提出的交易`];
     case "CANCEL_TRADE":
-      return [player, `取消了本次貿易`];
+      return [player, `取消了本次交易`];
     default:
       return [player, `${action.slice(1)}`];
   }

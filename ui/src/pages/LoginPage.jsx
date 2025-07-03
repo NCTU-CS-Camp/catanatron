@@ -131,7 +131,7 @@ export default function LoginPage() {
               CS CAMP CATAN
             </Typography>
             <Typography variant="h5" component="h2" className="sub-title">
-              歡迎來到卡坦島世界
+              使用LLM來玩卡坦島吧！
             </Typography>
           </div>
         </Fade>
