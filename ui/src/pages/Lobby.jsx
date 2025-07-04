@@ -76,7 +76,7 @@ const getPlayerConfig = () => {
       return colorClass1; // 預設配置
   }
 }
-const PictureUrl = getGroupAvatar(user.group_id);
+// const PictureUrl = getGroupAvatar(user.group_id);
 export default function Lobby() {
   const [games, setGames] = useState([]);
   const [currentWebSocketGame, setCurrentWebSocketGame] = useState(null);
